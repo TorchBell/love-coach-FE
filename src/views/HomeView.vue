@@ -1,215 +1,168 @@
 <script setup>
-import MainLayout from '../layouts/MainLayout.vue'
-import PhotoCard from '../components/PhotoCard.vue'
-import { ref, defineEmits } from 'vue'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import tomaImage from '@/assets/images/tomai.png'
+import CharacterDialog from '../components/CharacterDialog.vue'
 
-// Define emits
-const emit = defineEmits(['scroll'])
+const router = useRouter()
+const showDialog = ref(false)
+const dialogText = ref("어서오세요!") // Updated greeting
+const currentChoices = ref([])
 
-// Assets
-import tomaImg from '@/assets/images/toma.png'
-import belleImg from '@/assets/images/belle.png'
-import chieImg from '@/assets/images/chie.png'
+// Updated menu items for left sidebar
+const menuItems = [
+  { id: 'gallery', label: '갤러리', path: '/gallery', icon: '🖼️' },
+  { id: 'log', label: '기록', path: '/log', icon: '📝' },
+  { id: 'achievement', label: '업적', path: '/achievement', icon: '🏆' },
+  { id: 'mypage', label: '마이페이지', path: '/mypage', icon: '👤' },
+]
 
-// Scroll handler
-const handleScroll = (e) => {
-  emit('scroll', e)
+const handleMenuClick = (path) => {
+  router.push(path)
 }
 
-// Scroll to Section Logic
-const scrollToSection = (id) => {
-  const element = document.getElementById(id)
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+const openDialog = () => {
+  showDialog.value = true
+  dialogText.value = "무엇을 도와드릴까요?"
+  currentChoices.value = dialogChoices
+}
+
+const handleChoice = (choiceId) => {
+  console.log('Selected choice:', choiceId)
+  currentChoices.value = []
+  
+  if (choiceId === 1) {
+    dialogText.value = "식단 기록 페이지로 이동할게요!"
+    setTimeout(() => {
+      showDialog.value = false
+      router.push({ path: '/log', query: { tab: 'diet' } })
+    }, 1000)
+  } else if (choiceId === 2) {
+    dialogText.value = "운동 기록 페이지로 이동할게요!"
+    setTimeout(() => {
+      showDialog.value = false
+      router.push({ path: '/log', query: { tab: 'workout' } })
+    }, 1000)
+  } else if (choiceId === 3) {
+    dialogText.value = "러닝 기록 페이지로 이동할게요!"
+    setTimeout(() => {
+      showDialog.value = false
+      router.push({ path: '/log', query: { tab: 'running' } })
+    }, 1000)
+  } else if (choiceId === 4) {
+    dialogText.value = "그래, 천천히 생각해봐. 언제든 기다릴게."
+    setTimeout(() => {
+      showDialog.value = false
+      setTimeout(() => {
+        dialogText.value = "어서오세요!"
+      }, 300)
+    }, 1500)
   }
 }
 
-// Left Sidebar Items (4 Items)
-const leftItems = [
-  { 
-    id: 'diet', 
-    title: 'Diet Master', 
-    description: 'Food tracking', 
-    image: tomaImg,
-    subtitle: 'Nutrition Journey',
-    details: 'Track your meals and reach your calorie goals with our comprehensive food database.'
-  },
-  { 
-    id: 'workout', 
-    title: 'Workout Champion', 
-    description: 'Strength training', 
-    image: belleImg,
-    subtitle: 'Power & Strength',
-    details: 'Log your workouts and watch your strength grow with detailed exercise tracking.'
-  },
-  { 
-    id: 'body', 
-    title: 'Body Transformation', 
-    description: 'Progress tracking', 
-    image: chieImg,
-    subtitle: 'Your Journey',
-    details: 'Monitor your weight, body composition, and see your transformation over time.'
-  },
-  { 
-    id: 'water', 
-    title: 'Hydration Hero', 
-    description: 'Water tracking', 
-    image: tomaImg,
-    subtitle: 'Stay Hydrated',
-    details: 'Keep track of your water intake and maintain optimal hydration throughout the day.'
-  },
+const dialogChoices = [
+  { id: 1, text: "오늘 먹은 식단 기록할래" },
+  { id: 2, text: "운동 기록하러 왔어" },
+  { id: 3, text: "러닝 기록하러 왔어" },
+  { id: 4, text: "지금은 좀 더 생각해봐야할 거 같아" }
 ]
-
-// Right Sidebar Items (4 Items)
-const rightItems = [
-  { 
-    id: 'running', 
-    title: 'Running Legend', 
-    description: 'Endurance', 
-    image: chieImg,
-    subtitle: 'Go the Distance',
-    details: 'Track your runs, monitor your pace, and achieve new personal records.'
-  },
-  { 
-    id: 'shop', 
-    title: 'Shopping Spree', 
-    description: 'Collectibles', 
-    image: belleImg,
-    subtitle: 'Rewards & Items',
-    details: 'Unlock special items and rewards as you progress through your fitness journey.'
-  },
-  { 
-    id: 'achievements', 
-    title: 'Achievement Hunter', 
-    description: 'Milestones', 
-    image: tomaImg,
-    subtitle: 'Badges of Honor',
-    details: 'Complete challenges and earn badges that showcase your dedication and progress.'
-  },
-  { 
-    id: 'journey', 
-    title: 'Fitness Journey', 
-    description: 'Overview', 
-    image: belleImg,
-    subtitle: 'Your Story',
-    details: 'View your complete fitness timeline and celebrate every milestone along the way.'
-  },
-]
-
-// All items for gallery
-const allItems = [...leftItems, ...rightItems]
 </script>
 
 <template>
-  <MainLayout @scroll="handleScroll">
-    <!-- Left Sidebar Content -->
-    <template #left>
-      <PhotoCard 
-        v-for="item in leftItems" 
-        :key="item.id" 
-        :title="item.title" 
-        :description="item.description"
-        :image="item.image"
-        @click="scrollToSection(item.id)"
-      />
-    </template>
-
-    <!-- Center Gallery Content -->
-    <template #default>
-      <!-- Gallery Header -->
-      <div class="text-center mb-16">
-        <h1 class="text-5xl font-bold text-soft-black mb-4 tracking-tight">
-          Hall of Fame
-        </h1>
-        <p class="text-lg text-gray-500 max-w-2xl mx-auto">
-          Your fitness journey visualized. Click the cards on the sides to jump to any section.
-        </p>
-        <div class="w-24 h-1 bg-gradient-to-r from-pastel-red via-pastel-yellow to-pastel-blue mx-auto mt-6 rounded-full"></div>
-      </div>
-
-      <!-- Gallery Items (8 Total) -->
-      <div class="space-y-20">
-        <section 
-          v-for="(item, index) in allItems" 
-          :key="item.id" 
-          :id="item.id" 
-          class="gallery-item group"
+  <div class="home-container min-h-screen bg-gradient-to-br from-cream via-white to-pastel-pink/30 relative overflow-hidden flex">
+    
+    <!-- Left Side: Large Navigation Menu -->
+    <div class="w-1/3 z-20 flex flex-col justify-center pl-16 space-y-8">
+      <h1 class="text-6xl font-bold text-pastel-red font-pixel mb-12 tracking-wider drop-shadow-sm">
+        Love &<br>Nyam
+      </h1>
+      
+      <nav class="flex flex-col space-y-6">
+        <button 
+          v-for="item in menuItems" 
+          :key="item.id"
+          @click="handleMenuClick(item.path)"
+          class="group flex items-center space-x-6 text-3xl font-bold text-gray-500 hover:text-pastel-red transition-all duration-300 transform hover:translate-x-4 hover:scale-105"
         >
-          <!-- Expanded Gallery Card -->
-          <div class="bg-white rounded-3xl shadow-soft hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 group-hover:border-pastel-red/30">
-            <!-- Image Section -->
-            <div class="relative h-96 overflow-hidden bg-gradient-to-br from-cream/50 to-white">
-              <div class="absolute inset-0 flex items-center justify-center">
-                <img 
-                  :src="item.image" 
-                  :alt="item.title"
-                  class="w-80 h-80 object-cover rounded-2xl shadow-lg transform group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-              <!-- Overlay badge -->
-              <div class="absolute top-6 left-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-md">
-                <span class="text-sm font-semibold text-pastel-red">#{{ index + 1 }}</span>
-              </div>
-            </div>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-4xl filter drop-shadow-md">{{ item.icon }}</span>
+          <span class="relative">
+            {{ item.label }}
+            <span class="absolute -bottom-2 left-0 w-0 h-1 bg-pastel-red transition-all duration-300 group-hover:w-full"></span>
+          </span>
+        </button>
+      </nav>
+    </div>
 
-            <!-- Content Section -->
-            <div class="p-8">
-              <div class="flex items-center justify-between mb-4">
-                <div>
-                  <h2 class="text-3xl font-bold text-soft-black mb-1">{{ item.title }}</h2>
-                  <p class="text-pastel-blue font-semibold text-sm tracking-wide uppercase">{{ item.subtitle }}</p>
-                </div>
-                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-pastel-red/20 to-pastel-blue/20 flex items-center justify-center">
-                  <span class="text-2xl">{{ index % 2 === 0 ? '🏆' : '⭐' }}</span>
-                </div>
-              </div>
-              
-              <p class="text-gray-600 text-lg leading-relaxed mb-6">
-                {{ item.details }}
-              </p>
-
-              <!-- Stats/Progress Bar Placeholder -->
-              <div class="bg-cream/30 rounded-xl p-4 border border-gray-100">
-                <div class="flex justify-between items-center mb-2">
-                  <span class="text-sm font-semibold text-gray-700">Progress</span>
-                  <span class="text-sm font-bold text-pastel-red">{{ Math.floor(Math.random() * 40 + 60) }}%</span>
-                </div>
-                <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-                  <div 
-                    class="h-full bg-gradient-to-r from-pastel-red to-pastel-yellow rounded-full transition-all duration-1000"
-                    :style="{ width: `${Math.floor(Math.random() * 40 + 60)}%` }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- End Message -->
-      <div class="text-center mt-24 mb-12">
-        <p class="text-gray-400 text-lg">
-          Keep pushing forward! 💪
-        </p>
-      </div>
-    </template>
-
-    <!-- Right Sidebar Content -->
-    <template #right>
-      <PhotoCard 
-        v-for="item in rightItems" 
-        :key="item.id" 
-        :title="item.title" 
-        :description="item.description"
-        :image="item.image"
-        @click="scrollToSection(item.id)"
+    <!-- Right Side: Character Area -->
+    <div class="w-2/3 relative flex items-end justify-center z-10">
+      <!-- Character Image (Toma) -->
+      <img 
+        :src="tomaImage" 
+        alt="Toma" 
+        class="h-[90vh] object-contain transform translate-y-4 transition-transform duration-700 hover:scale-105 filter drop-shadow-2xl"
       />
-    </template>
-  </MainLayout>
+
+      <!-- Speech Bubble (Initial Greeting) - Moved to Right -->
+      <div 
+        v-if="!showDialog"
+        class="absolute top-[25%] right-[15%] bg-white/95 backdrop-blur-sm p-8 rounded-3xl rounded-bl-none shadow-xl animate-float cursor-pointer hover:bg-pastel-pink/10 transition-all border-2 border-pastel-red/20 max-w-xs"
+        @click="openDialog"
+      >
+        <p class="text-2xl font-bold text-soft-black leading-relaxed">{{ dialogText }}</p>
+        <!-- Tail pointing to character -->
+        <div class="absolute bottom-4 -left-3 w-6 h-6 bg-white/95 border-l-2 border-b-2 border-pastel-red/20 transform rotate-45"></div>
+      </div>
+      
+      <!-- Chat Button (Floating) -->
+      <button 
+        @click="openDialog"
+        class="absolute bottom-16 right-16 bg-gradient-to-r from-pastel-red to-pink-400 text-white px-10 py-5 rounded-full shadow-2xl hover:shadow-pastel-red/50 transition-all transform hover:scale-110 font-bold text-xl z-30 flex items-center gap-3 border-4 border-white/50"
+      >
+        <span class="text-2xl">💬</span>
+        <span>대화하기</span>
+      </button>
+    </div>
+
+    <!-- Dialog Overlay -->
+    <CharacterDialog 
+      :visible="showDialog" 
+      :text="dialogText" 
+      :character-image="tomaImage"
+      :choices="currentChoices"
+      @select="handleChoice"
+    />
+    
+    <!-- Decorative elements -->
+    <div class="absolute top-10 right-10 w-64 h-64 bg-pastel-yellow/10 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
+    <div class="absolute bottom-10 left-10 w-80 h-80 bg-pastel-blue/10 rounded-full blur-3xl animate-pulse pointer-events-none" style="animation-delay: 1.5s;"></div>
+  </div>
 </template>
 
 <style scoped>
-.gallery-item {
-  scroll-margin-top: 2rem;
+.home-container {
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes animate-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: animate-float 3s ease-in-out infinite;
 }
 </style>

@@ -36,3 +36,10 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* Text Selection Color */
+::selection {
+  background-color: #F8A8A8;
+  /* Pastel Red */
+  color: #FFFFFF;
+}

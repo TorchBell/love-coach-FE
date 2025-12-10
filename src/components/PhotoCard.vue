@@ -28,13 +28,13 @@ const { variant } = useMotion(cardRef, {
 <template>
   <div 
     ref="cardRef"
-    class="photo-card bg-white rounded-2xl p-3 shadow-md hover:shadow-xl cursor-pointer transition-all duration-300 border border-gray-100 hover:border-pastel-red/30"
+    class="photo-card bg-white rounded-2xl p-2 shadow-md hover:shadow-xl cursor-pointer transition-all duration-300 border border-gray-100 hover:border-pastel-red/30 group"
     @mouseenter="variant.value = 'hovered'"
     @mouseleave="variant.value = 'initial'"
     @click="$emit('click')"
   >
     <!-- Image Container -->
-    <div class="relative w-full h-48 rounded-xl overflow-hidden bg-cream/30 mb-3">
+    <div class="relative w-full h-[60%] rounded-xl overflow-hidden bg-cream/30 mb-1">
       <img 
         :src="image" 
         :alt="title" 
@@ -45,25 +45,29 @@ const { variant } = useMotion(cardRef, {
     </div>
 
     <!-- Text Content -->
-    <div class="text-center px-2">
-      <h3 class="font-bold text-soft-black text-sm mb-1 truncate">
+    <div class="text-center px-1 h-[35%] flex flex-col justify-center">
+      <h3 class="font-bold text-soft-black text-sm mb-0.5 truncate">
         {{ title }}
       </h3>
-      <p class="text-gray-500 text-xs truncate">
+      <p class="text-gray-500 text-[10px] truncate">
         {{ description }}
       </p>
     </div>
 
     <!-- Bottom decorative line -->
-    <div class="mt-3 w-12 h-0.5 bg-gradient-to-r from-pastel-red to-pastel-yellow mx-auto rounded-full"></div>
+    <div class="h-[5%] flex items-center justify-center">
+      <div class="w-8 h-0.5 bg-gradient-to-r from-pastel-red to-pastel-yellow rounded-full"></div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .photo-card {
   width: 100%;
-  max-width: 260px;
-  aspect-ratio: 3/4;
+  /* Use flex-1 to automatically fill available space in the flex container */
+  flex: 1;
+  height: auto;
+  min-height: 0; /* Allow shrinking if needed */
 }
 
 .photo-card:active {

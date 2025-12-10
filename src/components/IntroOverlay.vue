@@ -2,31 +2,58 @@
 import { ref, onMounted } from 'vue'
 import PixelButton from './PixelButton.vue'
 import { useMotion } from '@vueuse/motion'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const emit = defineEmits(['start'])
 
 const show = ref(true)
-const text = "Welcome to Love & Fitness! Are you ready to get fit with us?"
+const step = ref(1)
 const displayedText = ref("")
-const showButton = ref(false)
+const showChoices = ref(false)
+const showNextButton = ref(false)
 
-const typeText = async () => {
+const dialogues = {
+  1: "어서오세요! 오랜만이에요!! 또 볼 수 있었으면 좋겠다 생각했는데...",
+  2: "오늘은 무엇을 하러 오셨나요?",
+  3: "" // Choices step
+}
+
+const typeText = async (text) => {
+  displayedText.value = ""
+  showChoices.value = false
+  showNextButton.value = false
+  
   for (let i = 0; i < text.length; i++) {
     displayedText.value += text[i]
     await new Promise(r => setTimeout(r, 50))
   }
-  showButton.value = true
+  
+  if (step.value < 3) {
+    showNextButton.value = true
+  } else {
+    showChoices.value = true
+  }
 }
 
-const handleStart = () => {
+const nextStep = () => {
+  if (step.value < 3) {
+    step.value++
+    typeText(dialogues[step.value])
+  }
+}
+
+const handleChoice = (choice) => {
   show.value = false
   setTimeout(() => {
-    emit('start')
-  }, 500)
+    if (choice === 1) router.push({ path: '/log', query: { tab: 'diet' } })
+    else if (choice === 2) router.push({ path: '/log', query: { tab: 'workout' } })
+    else if (choice === 3) router.push({ path: '/log', query: { tab: 'running' } })
+  }, 300)
 }
 
 onMounted(() => {
-  setTimeout(typeText, 1000)
+  setTimeout(() => typeText(dialogues[1]), 1000)
 })
 </script>
 
@@ -47,12 +74,25 @@ onMounted(() => {
 
       <h2 class="font-pixel text-2xl mb-4 text-vivid-red">Toma</h2>
       
-      <div class="bg-dark p-4 mb-8 min-h-[100px]">
-        <p class="font-pixel text-white leading-relaxed">{{ displayedText }}<span class="animate-pulse">_</span></p>
+      <div class="bg-white/90 backdrop-blur-sm border-2 border-dark p-4 mb-8 min-h-[100px] rounded-lg shadow-sm relative">
+        <!-- Show last question if choices are active -->
+        <p v-if="showChoices" class="font-pixel text-soft-black leading-relaxed text-lg font-medium">{{ dialogues[2] }}</p>
+        <p v-else class="font-pixel text-soft-black leading-relaxed text-lg font-medium">{{ displayedText }}<span class="animate-pulse" v-if="!showNextButton">_</span></p>
+        
+        <!-- Manual Next Button -->
+        <button 
+          v-if="showNextButton"
+          @click="nextStep"
+          class="absolute bottom-2 right-2 text-pastel-red animate-bounce font-bold cursor-pointer hover:scale-110 transition-transform"
+        >
+          ▼ 대답하기
+        </button>
       </div>
 
-      <div class="text-center" v-if="showButton">
-        <PixelButton variant="primary" @click="handleStart">START GAME</PixelButton>
+      <div class="flex flex-col gap-4" v-if="showChoices">
+        <PixelButton variant="primary" @click="handleChoice(1)" class="text-white font-bold text-lg shadow-md bg-pastel-red hover:bg-pastel-red/80 border-2 border-white">1. 식단 등록하러 왔어</PixelButton>
+        <PixelButton variant="secondary" @click="handleChoice(2)" class="text-soft-black font-bold text-lg shadow-md bg-pastel-yellow hover:bg-pastel-yellow/80 border-2 border-white">2. 근력운동 등록하러 왔어</PixelButton>
+        <PixelButton variant="accent" @click="handleChoice(3)" class="text-white font-bold text-lg shadow-md bg-pastel-blue hover:bg-pastel-blue/80 border-2 border-white">3. 유산소운동 등록하러 왔어</PixelButton>
       </div>
     </div>
   </div>

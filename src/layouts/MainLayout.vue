@@ -1,107 +1,103 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 
-const router = useRouter()
+const route = useRoute()
+
+// AI Assistant Logic
+const aiCharacter = computed(() => {
+  if (route.path === '/log') {
+    const tab = route.query.tab
+    if (tab === 'workout') return 'belle'
+    if (tab === 'running') return 'chie'
+    return 'toma' // Default to Toma for Diet
+  }
+  // Home page or others: Default to highest achievement char (Mock: Toma)
+  return 'toma'
+})
+
+const getAiImage = (char) => {
+  if (char === 'belle') return new URL('@/assets/images/belle.png', import.meta.url).href
+  if (char === 'chie') return new URL('@/assets/images/chie.png', import.meta.url).href
+  return new URL('@/assets/images/toma.png', import.meta.url).href
+}
+
+const showAiChat = ref(false)
 </script>
 
 <template>
-  <div class="min-h-screen bg-white font-sans selection:bg-pastel-red selection:text-white">
-    
-    <!-- Top Navigation Bar (Fixed) -->
-    <nav class="fixed top-0 left-0 w-full h-16 bg-white/95 backdrop-blur-md shadow-soft z-50 flex justify-between items-center px-8 border-b border-gray-100">
-      <div class="flex gap-8 text-soft-black font-semibold">
-        <router-link 
-          to="/" 
-          class="hover:text-pastel-red transition-colors duration-300 relative group"
-          active-class="text-pastel-red"
-        >
-          Home
-          <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-pastel-red group-hover:w-full transition-all duration-300"></span>
-        </router-link>
-        <router-link 
-          to="/log" 
-          class="hover:text-pastel-red transition-colors duration-300 relative group"
-          active-class="text-pastel-red"
-        >
-          Log
-          <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-pastel-red group-hover:w-full transition-all duration-300"></span>
-        </router-link>
-        <router-link 
-          to="/achievement" 
-          class="hover:text-pastel-red transition-colors duration-300 relative group"
-          active-class="text-pastel-red"
-        >
-          Achievements
-          <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-pastel-red group-hover:w-full transition-all duration-300"></span>
-        </router-link>
-        <router-link 
-          to="/mypage" 
-          class="hover:text-pastel-red transition-colors duration-300 relative group"
-          active-class="text-pastel-red"
-        >
-          My Page
-          <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-pastel-red group-hover:w-full transition-all duration-300"></span>
-        </router-link>
-      </div>
-      
-      <!-- Logo in Nav -->
-      <div class="flex items-center gap-2">
-        <span class="text-xl font-bold text-pastel-red tracking-widest">LoveNyam</span>
-        <span class="text-sm text-pastel-blue font-semibold">FITNESS</span>
+  <div class="min-h-screen bg-cream font-sans overflow-hidden selection:bg-pastel-red selection:text-white">
+    <!-- Top Navigation (Fixed) -->
+    <nav class="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md shadow-sm z-50 flex items-center justify-between px-6 border-b border-pastel-red/10">
+      <router-link to="/home" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <span class="text-2xl">🥗</span>
+        <h1 class="text-xl font-bold text-soft-black tracking-tight">Love & Fitness</h1>
+      </router-link>
+      <div class="flex items-center gap-6 font-semibold text-gray-600">
+        <router-link to="/home" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">홈</router-link>
+        <router-link to="/gallery" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">갤러리</router-link>
+        <router-link to="/log" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">기록</router-link>
+        <router-link to="/achievement" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">업적</router-link>
+        <router-link to="/mypage" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">마이페이지</router-link>
       </div>
     </nav>
 
-    <!-- Main 3-Column Layout with Fixed Sidebars -->
-    <div class="pt-16 flex w-full mx-auto max-w-[1920px]">
-      
-      <!-- Left Sidebar (FIXED Position) -->
-      <aside class="fixed left-0 top-16 w-[280px] h-[calc(100vh-4rem)] bg-gradient-to-b from-cream/40 to-cream/20 border-r border-gray-200/50 overflow-y-auto scrollbar-hide z-30">
-        <div class="p-5 space-y-4">
-          <slot name="left"></slot>
+    <!-- Main Content Area -->
+    <div class="pt-16 h-screen flex relative">
+      <!-- Left Sidebar (Fixed) -->
+      <aside class="hidden md:block w-1/4 h-full fixed left-0 top-16 bottom-0 overflow-hidden bg-white/50 border-r border-pastel-red/10 z-40">
+        <div class="h-full p-2 flex flex-col gap-2">
+          <slot name="left-sidebar"></slot>
         </div>
       </aside>
 
-      <!-- Center Content (Scrollable Gallery) - with left/right margins for sidebars -->
-      <main 
-        class="flex-1 ml-[280px] mr-[280px] min-h-screen bg-white overflow-y-auto"
-        @scroll="$emit('scroll', $event)"
-      >
-        <div class="px-8 py-12 max-w-5xl mx-auto">
-          <slot></slot>
-        </div>
+      <!-- Center Content (Scrollable) -->
+      <main class="w-full md:w-1/2 md:ml-[25%] h-full overflow-y-auto p-4 md:p-6 scrollbar-hide pb-24">
+        <slot></slot>
         
         <!-- Footer -->
-        <footer class="mt-20 py-8 text-center text-gray-400 text-sm border-t border-gray-100">
+        <footer class="mt-12 py-8 text-center text-gray-400 text-sm border-t border-gray-100">
           <p>&copy; 2024 LoveNyam & Fitness. All rights reserved.</p>
-          <p class="text-xs mt-2">Keep moving forward 💪</p>
+          <p class="text-xs mt-2">오늘도 건강한 하루 되세요! 💪</p>
         </footer>
       </main>
 
-      <!-- Right Sidebar (FIXED Position) -->
-      <aside class="fixed right-0 top-16 w-[280px] h-[calc(100vh-4rem)] bg-gradient-to-b from-cream/40 to-cream/20 border-l border-gray-200/50 overflow-y-auto scrollbar-hide z-30">
-        <div class="p-5 space-y-4">
-          <slot name="right"></slot>
+      <!-- Right Sidebar (Fixed) -->
+      <aside class="hidden md:block w-1/4 h-full fixed right-0 top-16 bottom-0 overflow-hidden bg-white/50 border-l border-pastel-red/10 z-40">
+        <div class="h-full p-2 flex flex-col gap-2">
+          <slot name="right-sidebar"></slot>
         </div>
       </aside>
-
     </div>
 
+    <!-- AI Assistant FAB -->
+    <div class="fixed bottom-8 right-8 z-50">
+      <button 
+        @click="showAiChat = !showAiChat"
+        class="w-16 h-16 rounded-full bg-white shadow-lg border-4 border-pastel-red overflow-hidden hover:scale-110 transition-transform duration-300"
+      >
+        <img :src="getAiImage(aiCharacter)" alt="AI Assistant" class="w-full h-full object-cover" />
+      </button>
+      
+      <!-- AI Chat Bubble -->
+      <div v-if="showAiChat" class="absolute bottom-20 right-0 w-64 bg-white rounded-2xl shadow-xl p-4 border-2 border-pastel-red animate-bounce-in">
+        <div class="text-sm font-bold text-pastel-red mb-1">
+          {{ aiCharacter === 'toma' ? '토마' : aiCharacter === 'belle' ? '벨' : '치에' }}
+        </div>
+        <p class="text-soft-black text-sm">
+          오늘도 열심히 운동하고 계신가요? 궁금한 점이 있다면 언제든 물어봐주세요!
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* Hide scrollbar but allow scrolling */
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
 .scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Smooth scroll behavior */
-main {
-  scroll-behavior: smooth;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>

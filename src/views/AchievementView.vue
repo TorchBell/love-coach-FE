@@ -4,9 +4,9 @@ import MainLayout from '../layouts/MainLayout.vue'
 
 // Achievement Categories
 const categories = ref([
-  { id: 'unlocked', name: 'Unlocked', icon: '🏆', count: 5 },
-  { id: 'progress', name: 'In Progress', icon: '⏳', count: 3 },
-  { id: 'locked', name: 'Locked', icon: '🔒', count: 12 }
+  { id: 'unlocked', name: '달성 완료', icon: '🏆', count: 5 },
+  { id: 'progress', name: '진행 중', icon: '⏳', count: 3 },
+  { id: 'locked', name: '미달성', icon: '🔒', count: 12 }
 ])
 
 const activeCategory = ref('unlocked')
@@ -16,152 +16,101 @@ const achievements = ref({
   unlocked: [
     {
       id: 1,
-      title: 'First Steps',
-      description: 'Complete your first workout',
+      title: '첫 걸음',
+      description: '첫 운동 완료하기',
       icon: '🎯',
       reward: '+50 XP',
       unlockedDate: '2024-01-15',
-      image: 'https://via.placeholder.com/200x200/FFB6C1/FFFFFF?text=Achievement'
+      // USER_TODO: Replace with achievement_1.png
+      image: new URL('@/assets/images/toma.png', import.meta.url).href
     },
     {
       id: 2,
-      title: 'Meal Tracker',
-      description: 'Log 7 days of meals consecutively',
+      title: '식단 기록가',
+      description: '7일 연속 식단 기록하기',
       icon: '🍽️',
       reward: '+100 XP',
       unlockedDate: '2024-01-12',
-      image: 'https://via.placeholder.com/200x200/FFD700/FFFFFF?text=Achievement'
+      // USER_TODO: Replace with achievement_2.png
+      image: new URL('@/assets/images/gallery_diet.png', import.meta.url).href
     },
     {
       id: 3,
-      title: 'Early Bird',
-      description: 'Complete a morning workout',
+      title: '얼리 버드',
+      description: '아침 운동 완료하기',
       icon: '🌅',
       reward: '+75 XP',
       unlockedDate: '2024-01-10',
-      image: 'https://via.placeholder.com/200x200/87CEEB/FFFFFF?text=Achievement'
+      // USER_TODO: Replace with achievement_3.png
+      image: new URL('@/assets/images/belle.png', import.meta.url).href
     },
     {
       id: 4,
-      title: 'Hydration Hero',
-      description: 'Drink 8 glasses of water in one day',
+      title: '수분 충전',
+      description: '하루 물 8잔 마시기',
       icon: '💧',
       reward: '+50 XP',
       unlockedDate: '2024-01-08',
-      image: 'https://via.placeholder.com/200x200/98D8C8/FFFFFF?text=Achievement'
+      // USER_TODO: Replace with achievement_4.png
+      image: new URL('@/assets/images/gallery_diet.png', import.meta.url).href
     },
     {
       id: 5,
-      title: 'Marathon Runner',
-      description: 'Run a total of 42km',
+      title: '마라토너',
+      description: '총 42km 러닝 달성',
       icon: '🏃',
       reward: '+200 XP',
       unlockedDate: '2024-01-05',
-      image: 'https://via.placeholder.com/200x200/F7CAC9/FFFFFF?text=Achievement'
+      // USER_TODO: Replace with achievement_5.png
+      image: new URL('@/assets/images/chie.png', import.meta.url).href
     }
   ],
   progress: [
     {
       id: 6,
-      title: 'Strength Builder',
-      description: 'Complete 50 strength workouts',
+      title: '근력왕',
+      description: '근력 운동 50회 완료하기',
       icon: '💪',
       progress: 32,
       total: 50,
-      image: 'https://via.placeholder.com/200x200/CCCCCC/FFFFFF?text=In+Progress'
+      // USER_TODO: Replace with progress_1.png
+      image: new URL('@/assets/images/belle.png', import.meta.url).href
     },
     {
       id: 7,
-      title: 'Weight Warrior',
-      description: 'Lose 5kg',
+      title: '다이어터',
+      description: '5kg 감량하기',
       icon: '⚖️',
       progress: 3.2,
       total: 5,
-      image: 'https://via.placeholder.com/200x200/CCCCCC/FFFFFF?text=In+Progress'
+      // USER_TODO: Replace with progress_2.png
+      image: new URL('@/assets/images/toma.png', import.meta.url).href
     },
     {
       id: 8,
-      title: 'Streak Master',
-      description: 'Maintain a 30-day login streak',
+      title: '꾸준함의 미학',
+      description: '30일 연속 접속하기',
       icon: '🔥',
       progress: 18,
       total: 30,
-      image: 'https://via.placeholder.com/200x200/CCCCCC/FFFFFF?text=In+Progress'
+      // USER_TODO: Replace with progress_3.png
+      image: new URL('@/assets/images/chie.png', import.meta.url).href
     }
   ],
   locked: [
     {
       id: 9,
       title: '???',
-      hint: 'Complete 100 workouts to unlock this achievement',
+      hint: '운동 100회 완료 시 잠금 해제',
       icon: '❓'
     },
     {
       id: 10,
       title: '???',
-      hint: 'Reach your goal weight to unlock this achievement',
+      hint: '목표 체중 달성 시 잠금 해제',
       icon: '❓'
     },
-    {
-      id: 11,
-      title: '???',
-      hint: 'Complete a perfect week (all activities logged) to unlock',
-      icon: '❓'
-    },
-    {
-      id: 12,
-      title: '???',
-      hint: 'Run a total of 100km to unlock this achievement',
-      icon: '❓'
-    },
-    {
-      id: 13,
-      title: '???',
-      hint: 'Unlock 10 other achievements first',
-      icon: '❓'
-    },
-    {
-      id: 14,
-      title: '???',
-      hint: 'Maintain a 60-day streak',
-      icon: '❓'
-    },
-    {
-      id: 15,
-      title: '???',
-      hint: 'Complete 200 workouts',
-      icon: '❓'
-    },
-    {
-      id: 16,
-      title: '???',
-      hint: 'Log 30 consecutive days of meals',
-      icon: '❓'
-    },
-    {
-      id: 17,
-      title: '???',
-      hint: 'Run a total of 500km',
-      icon: '❓'
-    },
-    {
-      id: 18,
-      title: '???',
-      hint: 'Achieve peak performance',
-      icon: '❓'
-    },
-    {
-      id: 19,
-      title: '???',
-      hint: 'Master all workout types',
-      icon: '❓'
-    },
-    {
-      id: 20,
-      title: '???',
-      hint: 'Become a fitness legend',
-      icon: '❓'
-    }
+    // ... more locked items
   ]
 })
 </script>
@@ -171,8 +120,8 @@ const achievements = ref({
     <template #default>
       <!-- Page Header -->
       <div class="text-center mb-12">
-        <h1 class="text-5xl font-bold text-soft-black mb-4">Achievements</h1>
-        <p class="text-lg text-gray-500">Complete challenges and unlock rewards on your fitness journey</p>
+        <h1 class="text-5xl font-bold text-soft-black mb-4">나의 업적</h1>
+        <p class="text-lg text-gray-500">도전을 완료하고 보상을 획득하세요!</p>
       </div>
 
       <!-- Category Tabs -->
@@ -212,9 +161,6 @@ const achievements = ref({
                 :alt="achievement.title"
                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
               />
-              <div class="absolute top-4 right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <span class="text-2xl">{{ achievement.icon }}</span>
-              </div>
             </div>
             <!-- Content -->
             <div class="p-5">
@@ -242,9 +188,6 @@ const achievements = ref({
                 :alt="achievement.title"
                 class="w-full h-full object-cover opacity-60"
               />
-              <div class="absolute top-4 right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <span class="text-2xl grayscale">{{ achievement.icon }}</span>
-              </div>
             </div>
             <!-- Content -->
             <div class="p-5">
@@ -253,7 +196,7 @@ const achievements = ref({
               <!-- Progress Bar -->
               <div class="mb-3">
                 <div class="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Progress</span>
+                  <span>달성도</span>
                   <span class="font-bold text-pastel-yellow">{{ Math.round((achievement.progress / achievement.total) * 100) }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
@@ -284,7 +227,7 @@ const achievements = ref({
             <div class="p-5">
               <h3 class="text-lg font-bold text-gray-400 mb-2">{{ achievement.title }}</h3>
               <div class="text-xs text-gray-500 italic bg-gray-200 rounded-lg p-3 group-hover:bg-white group-hover:text-gray-700 transition-colors">
-                <span class="font-semibold">Hint:</span> {{ achievement.hint }}
+                <span class="font-semibold">힌트:</span> {{ achievement.hint }}
               </div>
             </div>
           </div>

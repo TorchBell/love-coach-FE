@@ -1,12 +1,12 @@
 <script setup>
-import IntroOverlay from './components/IntroOverlay.vue'
 import CharacterDialog from './components/CharacterDialog.vue'
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 // Import character image (using existing asset)
 import mainCharacterBelle from '@/assets/images/belle.png'
 
-const gameStarted = ref(false)
+const route = useRoute()
 const showDialog = ref(false)
 
 // Scroll Detection for Dialog (listen from child routes)
@@ -22,11 +22,11 @@ defineExpose({ handleScroll })
 </script>
 
 <template>
-  <IntroOverlay @start="gameStarted = true" />
+  <!-- IntroOverlay removed - it was blocking the Landing page -->
   
-  <!-- Character Dialog (Scroll Triggered) -->
+  <!-- Character Dialog (Scroll Triggered) - Only show on specific routes -->
   <CharacterDialog 
-    :visible="showDialog" 
+    :visible="showDialog && route.name !== 'landing' && route.name !== 'home'" 
     text="Welcome! Let's start your fitness journey together! 💪" 
     :character-image="mainCharacterBelle"
   />
