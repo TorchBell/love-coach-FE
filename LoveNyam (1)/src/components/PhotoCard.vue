@@ -11,7 +11,7 @@ const props = defineProps({
 const cardRef = ref(null)
 
 // Enhanced motion with gentle hover effect
-const { variant } = useMotion(cardRef, {
+const motionInstance = useMotion(cardRef, {
   initial: { scale: 1, y: 0 },
   hovered: { 
     scale: 1.03, 
@@ -29,8 +29,8 @@ const { variant } = useMotion(cardRef, {
   <div 
     ref="cardRef"
     class="photo-card bg-white rounded-2xl p-2 shadow-md hover:shadow-xl cursor-pointer transition-all duration-300 border border-gray-100 hover:border-pastel-red/30 group"
-    @mouseenter="variant.value = 'hovered'"
-    @mouseleave="variant.value = 'initial'"
+    @mouseenter="motionInstance.apply('hovered')"
+    @mouseleave="motionInstance.apply('initial')"
     @click="$emit('click')"
   >
     <!-- Image Container -->

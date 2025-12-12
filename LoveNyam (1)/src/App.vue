@@ -3,8 +3,9 @@ import CharacterDialog from './components/CharacterDialog.vue'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-// Import character image (using existing asset)
-import mainCharacterBelle from '@/assets/images/belle.png'
+// Import character image (using centralized asset)
+import { CHAR_IMAGES } from '@/assets/dummy/index.js'
+const mainCharacterBelle = CHAR_IMAGES?.belle || ''
 
 const route = useRoute()
 const showDialog = ref(false)

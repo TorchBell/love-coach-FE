@@ -2,7 +2,11 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { CHAR_IMAGES } from '@/assets/dummy/index.js'
+import { useUiStore } from '@/stores/uiStore'
+
 const route = useRoute()
+const uiStore = useUiStore()
 
 // AI Assistant Logic
 const aiCharacter = computed(() => {
@@ -17,12 +21,11 @@ const aiCharacter = computed(() => {
 })
 
 const getAiImage = (char) => {
-  if (char === 'belle') return new URL('@/assets/images/belle.png', import.meta.url).href
-  if (char === 'chie') return new URL('@/assets/images/chie.png', import.meta.url).href
-  return new URL('@/assets/images/toma.png', import.meta.url).href
+  if (char === 'belle') return CHAR_IMAGES.belle
+  if (char === 'chie') return CHAR_IMAGES.chie
+  return CHAR_IMAGES.toma
 }
 
-const showAiChat = ref(false)
 </script>
 
 <template>
@@ -73,14 +76,14 @@ const showAiChat = ref(false)
     <!-- AI Assistant FAB -->
     <div class="fixed bottom-8 right-8 z-50">
       <button 
-        @click="showAiChat = !showAiChat"
+        @click="uiStore.toggleAiChat"
         class="w-16 h-16 rounded-full bg-white shadow-lg border-4 border-pastel-red overflow-hidden hover:scale-110 transition-transform duration-300"
       >
         <img :src="getAiImage(aiCharacter)" alt="AI Assistant" class="w-full h-full object-cover" />
       </button>
       
       <!-- AI Chat Bubble -->
-      <div v-if="showAiChat" class="absolute bottom-20 right-0 w-64 bg-white rounded-2xl shadow-xl p-4 border-2 border-pastel-red animate-bounce-in">
+      <div v-if="uiStore.showAiChat" class="absolute bottom-20 right-0 w-64 bg-white rounded-2xl shadow-xl p-4 border-2 border-pastel-red animate-bounce-in">
         <div class="text-sm font-bold text-pastel-red mb-1">
           {{ aiCharacter === 'toma' ? '토마' : aiCharacter === 'belle' ? '벨' : '치에' }}
         </div>

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import PixelButton from './PixelButton.vue'
 import { useMotion } from '@vueuse/motion'
 import { useRouter } from 'vue-router'
+import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 
 const router = useRouter()
 const emit = defineEmits(['start'])
@@ -69,7 +70,7 @@ onMounted(() => {
     <div class="bg-white border-4 border-dark p-8 max-w-2xl w-full mx-4 shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] relative">
       <!-- Character Placeholder (Toma) -->
       <div class="absolute -top-24 right-8 w-32 h-32 animate-bounce">
-        <img src="@/assets/images/toma.png" alt="Toma" class="w-full h-full object-contain pixelated" />
+        <img :src="CHAR_IMAGES.toma" alt="Toma" class="w-full h-full object-contain pixelated" />
       </div>
 
       <h2 class="font-pixel text-2xl mb-4 text-vivid-red">Toma</h2>

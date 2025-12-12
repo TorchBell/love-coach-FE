@@ -1,13 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import doorImage from '@/assets/images/door_final.png'
+import { UI_IMAGES } from '@/assets/dummy/index.js'
 
 const router = useRouter()
 const isFading = ref(false)
 const showDoor = ref(false)
+const cursorUrl = ref('auto')
 
 onMounted(() => {
+  if (UI_IMAGES?.cursorFist) {
+    cursorUrl.value = `url('${UI_IMAGES.cursorFist}') 16 16, pointer`
+  }
   showDoor.value = true
 })
 
@@ -48,7 +52,7 @@ const handleKnock = () => {
         @dblclick="handleKnock"
       >
         <img 
-          :src="doorImage" 
+          :src="UI_IMAGES?.doorFinal || ''" 
           alt="Entrance Door" 
           class="w-[28rem] md:w-[36rem] lg:w-[44rem] rounded-t-[2rem]"
         />
@@ -67,7 +71,7 @@ const handleKnock = () => {
 
 <style scoped>
 .cursor-fist {
-  cursor: url('../assets/images/cursor_fist.png') 16 16, pointer;
+  cursor: v-bind(cursorUrl);
 }
 
 /* White fade animation */

@@ -2,38 +2,55 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import MainLayout from '../layouts/MainLayout.vue'
 import { useRoute, useRouter } from 'vue-router'
+import { CHAR_IMAGES } from '@/assets/dummy/index.js'
+import { useUiStore } from '@/stores/uiStore'
+import { useLogStore } from '@/stores/logStore'
+import { storeToRefs } from 'pinia'
 
 const route = useRoute()
 const router = useRouter()
+const uiStore = useUiStore()
+const logStore = useLogStore()
 
-const activeTab = ref('diet')
+const { activeTab } = storeToRefs(uiStore)
+const { 
+  selectedDate, 
+  formattedSelectedDate, 
+  filteredDietLogs, 
+  filteredWorkoutLogs, 
+  filteredRunningLogs,
+  dashboardStats 
+} = storeToRefs(logStore)
 
 const tabs = [
-  { id: 'diet', name: '식단', icon: '🥗', color: 'bg-pastel-red', image: new URL('@/assets/images/toma.png', import.meta.url).href, description: '토마와 함께!' },
-  { id: 'workout', name: '운동', icon: '💪', color: 'bg-pastel-yellow', image: new URL('@/assets/images/belle.png', import.meta.url).href, description: '벨과 득근!' },
-  { id: 'running', name: '러닝', icon: '🏃', color: 'bg-pastel-blue', image: new URL('@/assets/images/chie.png', import.meta.url).href, description: '치에와 질주!' }
+  { id: 'diet', name: '식단', icon: '🥗', color: 'bg-pastel-red', image: CHAR_IMAGES.toma, description: '토마와 함께!' },
+  { id: 'workout', name: '운동', icon: '💪', color: 'bg-pastel-yellow', image: CHAR_IMAGES.belle, description: '벨과 득근!' },
+  { id: 'running', name: '러닝', icon: '🏃', color: 'bg-pastel-blue', image: CHAR_IMAGES.chie, description: '치에와 질주!' }
 ]
 
 const setActiveTab = (tabId) => {
-  activeTab.value = tabId
+  uiStore.setActiveTab(tabId)
   router.push({ query: { ...route.query, tab: tabId } })
+  logStore.fetchDashboardStats(tabId)
 }
 
 watch(() => route.query.tab, (newTab) => {
   if (newTab && ['diet', 'workout', 'running'].includes(newTab)) {
-    activeTab.value = newTab
+    uiStore.setActiveTab(newTab)
+    logStore.fetchDashboardStats(newTab)
   }
 })
 
 onMounted(() => {
   if (route.query.tab) {
-    setActiveTab(route.query.tab)
+    uiStore.setActiveTab(route.query.tab)
   }
+  logStore.fetchLogs()
+  logStore.fetchDashboardStats(activeTab.value)
 })
 
 // --- Calendar Logic ---
 const currentDate = ref(new Date())
-const selectedDate = ref(new Date()) // Default to today
 
 const daysInMonth = computed(() => {
   const year = currentDate.value.getFullYear()
@@ -56,7 +73,9 @@ const selectDate = (day) => {
   if (!day) return
   const year = currentDate.value.getFullYear()
   const month = currentDate.value.getMonth()
-  selectedDate.value = new Date(year, month, day)
+  const newDate = new Date(year, month, day)
+  logStore.setSelectedDate(newDate)
+  logStore.fetchLogs()
 }
 
 const isSelectedDate = (day) => {
@@ -67,14 +86,7 @@ const isSelectedDate = (day) => {
   return checkDate.toDateString() === selectedDate.value.toDateString()
 }
 
-const formattedSelectedDate = computed(() => {
-  const year = selectedDate.value.getFullYear()
-  const month = selectedDate.value.getMonth() + 1
-  const day = selectedDate.value.getDate()
-  return `${year}년 ${month}월 ${day}일`
-})
-
-// Mock Data for Calendar Indicators
+// Mock Data for Calendar Indicators (Keeping local for now as it's complex to mock fully in store without more API)
 const calendarData = ref({
   5: ['diet'],
   12: ['diet', 'workout'],
@@ -82,92 +94,42 @@ const calendarData = ref({
   20: ['diet', 'workout', 'running']
 })
 
-// --- Dashboard Data (Mock) ---
-const dashboardData = computed(() => {
-  if (activeTab.value === 'diet') {
-    return {
-      title: '이번 달 식단',
-      stats: [
-        { label: '평균 칼로리', value: '1,850' },
-        { label: '기록일', value: '15일' },
-      ]
-    }
-  } else if (activeTab.value === 'workout') {
-    return {
-      title: '이번 달 운동',
-      stats: [
-        { label: '총 시간', value: '12시간' },
-        { label: '소모 칼로리', value: '4,500' },
-      ]
-    }
-  } else {
-    return {
-      title: '이번 달 러닝',
-      stats: [
-        { label: '총 거리', value: '45.5km' },
-        { label: '평균 페이스', value: '5:45' },
-      ]
-    }
-  }
-})
-
-// --- Log States ---
-// Store logs with date strings (YYYY-MM-DD)
-const dietLogs = ref([
-  { id: 1, date: new Date().toDateString(), menu: '오트밀, 사과 1개', calories: 350 },
-  { id: 2, date: new Date().toDateString(), menu: '닭가슴살 샐러드', calories: 450 },
-])
-const workoutLogs = ref([
-  { id: 1, date: new Date().toDateString(), type: '하체', exercise: '스쿼트', sets: 5, reps: 12, duration: 20 },
-])
-const runningLogs = ref([
-  { id: 1, date: new Date().toDateString(), location: '한강 공원', distance: 5.2, time: 35 },
-])
-
-// Filter logs by selectedDate
-const filteredDietLogs = computed(() => dietLogs.value.filter(log => log.date === selectedDate.value.toDateString()))
-const filteredWorkoutLogs = computed(() => workoutLogs.value.filter(log => log.date === selectedDate.value.toDateString()))
-const filteredRunningLogs = computed(() => runningLogs.value.filter(log => log.date === selectedDate.value.toDateString()))
-
 // --- Form States (Simplified) ---
-const dietForm = ref({ menu: '', calories: '' })
-const workoutForm = ref({ type: '전신', exercise: '', sets: '', reps: '', duration: '' })
-const runningForm = ref({ location: '', distance: '', time: '' })
+const dietForm = ref({ foodName: '', calory: '' })
+const workoutForm = ref({ part: '전신', exerciseName: '', setCount: '', repsPerSet: '', durationMinutes: '' })
+const runningForm = ref({ location: '', distance: '', durationMinutes: '' })
 
-const addDietLog = () => {
-  if (!dietForm.value.menu) return
-  dietLogs.value.push({ 
-    id: Date.now(), 
+const addDietLog = async () => {
+  if (!dietForm.value.foodName) return
+  await logStore.addDietLog({ 
     date: selectedDate.value.toDateString(),
     ...dietForm.value, 
-    calories: Number(dietForm.value.calories) 
+    calory: Number(dietForm.value.calory) 
   })
-  dietForm.value = { menu: '', calories: '' }
+  dietForm.value = { foodName: '', calory: '' }
   // Update calendar indicator (mock)
   const day = selectedDate.value.getDate()
   if (!calendarData.value[day]) calendarData.value[day] = []
   if (!calendarData.value[day].includes('diet')) calendarData.value[day].push('diet')
 }
-const addWorkoutLog = () => {
-  if (!workoutForm.value.exercise) return
-  workoutLogs.value.push({ 
-    id: Date.now(), 
+const addWorkoutLog = async () => {
+  if (!workoutForm.value.exerciseName) return
+  await logStore.addWorkoutLog({ 
     date: selectedDate.value.toDateString(),
     ...workoutForm.value 
   })
-  workoutForm.value = { type: '전신', exercise: '', sets: '', reps: '', duration: '' }
+  workoutForm.value = { part: '전신', exerciseName: '', setCount: '', repsPerSet: '', durationMinutes: '' }
   const day = selectedDate.value.getDate()
   if (!calendarData.value[day]) calendarData.value[day] = []
   if (!calendarData.value[day].includes('workout')) calendarData.value[day].push('workout')
 }
-const addRunningLog = () => {
+const addRunningLog = async () => {
   if (!runningForm.value.location) return
-  runningLogs.value.push({ 
-    id: Date.now(), 
+  await logStore.addRunningLog({ 
     date: selectedDate.value.toDateString(),
     ...runningForm.value 
   })
-  runningForm.value = { location: '', distance: '', time: '' }
+  runningForm.value = { location: '', distance: '', durationMinutes: '' }
   const day = selectedDate.value.getDate()
   if (!calendarData.value[day]) calendarData.value[day] = []
   if (!calendarData.value[day].includes('running')) calendarData.value[day].push('running')
@@ -185,11 +147,14 @@ const addRunningLog = () => {
 
       <!-- Character Tabs -->
       <div class="grid grid-cols-3 gap-4 mb-8">
-        <button
+        <div
           v-for="tab in tabs"
           :key="tab.id"
+          role="button"
+          tabindex="0"
           @click="setActiveTab(tab.id)"
-          class="relative h-48 rounded-3xl overflow-hidden transition-all duration-300 group border-4"
+          @keydown.enter="setActiveTab(tab.id)"
+          class="relative h-48 rounded-3xl overflow-hidden transition-all duration-300 group border-4 cursor-pointer"
           :class="activeTab === tab.id ? `border-pastel-red shadow-xl scale-105` : 'border-transparent hover:border-pastel-red/30 grayscale hover:grayscale-0'"
         >
           <!-- Background Image -->
@@ -205,7 +170,7 @@ const addRunningLog = () => {
               </h3>
             </div>
           </div>
-        </button>
+        </div>
       </div>
 
       <!-- Dashboard & Calendar Section -->
@@ -240,9 +205,9 @@ const addRunningLog = () => {
 
         <!-- Dashboard Card (Compact to col-span-1) -->
         <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 lg:col-span-1 flex flex-col justify-center">
-          <h3 class="text-xl font-bold text-soft-black mb-6 text-center">{{ dashboardData.title }}</h3>
+          <h3 class="text-xl font-bold text-soft-black mb-6 text-center">{{ dashboardStats.title }}</h3>
           <div class="space-y-4">
-            <div v-for="(stat, index) in dashboardData.stats" :key="index" class="bg-cream/50 rounded-2xl p-5 text-center border border-gray-100">
+            <div v-for="(stat, index) in dashboardStats.stats" :key="index" class="bg-cream/50 rounded-2xl p-5 text-center border border-gray-100">
               <p class="text-gray-500 text-sm mb-2">{{ stat.label }}</p>
               <p class="text-2xl font-bold text-pastel-red">{{ stat.value }}</p>
             </div>
@@ -264,8 +229,8 @@ const addRunningLog = () => {
               <span>✏️</span> 식단 기록하기
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input v-model="dietForm.menu" placeholder="메뉴 이름 (예: 닭가슴살)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-red md:col-span-2" />
-              <input v-model="dietForm.calories" type="number" placeholder="칼로리 (kcal)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-red" />
+              <input v-model="dietForm.foodName" placeholder="메뉴 이름 (예: 닭가슴살)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-red md:col-span-2" />
+              <input v-model="dietForm.calory" type="number" placeholder="칼로리 (kcal)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-red" />
             </div>
             <button @click="addDietLog" class="w-full mt-4 bg-pastel-red text-white py-3 rounded-xl font-bold hover:bg-pastel-red/90 transition-colors">
               등록하기
@@ -284,10 +249,10 @@ const addRunningLog = () => {
                   🥗
                 </div>
                 <div>
-                  <p class="font-bold text-soft-black">{{ log.menu }}</p>
+                  <p class="font-bold text-soft-black">{{ log.foodName }}</p>
                 </div>
               </div>
-              <span class="font-bold text-gray-500">{{ log.calories }} kcal</span>
+              <span class="font-bold text-gray-500">{{ log.calory }} kcal</span>
             </div>
           </div>
         </div>
@@ -300,18 +265,18 @@ const addRunningLog = () => {
               <span>💪</span> 운동 기록하기
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <select v-model="workoutForm.type" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow">
+              <select v-model="workoutForm.part" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow">
                 <option>전신</option>
                 <option>상체</option>
                 <option>하체</option>
                 <option>유산소</option>
               </select>
-              <input v-model="workoutForm.exercise" placeholder="운동 이름 (예: 스쿼트)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
+              <input v-model="workoutForm.exerciseName" placeholder="운동 이름 (예: 스쿼트)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
             </div>
             <div class="grid grid-cols-3 gap-4">
-              <input v-model="workoutForm.sets" type="number" placeholder="세트" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
-              <input v-model="workoutForm.reps" type="number" placeholder="회/분" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
-              <input v-model="workoutForm.duration" type="number" placeholder="시간(분)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
+              <input v-model="workoutForm.setCount" type="number" placeholder="세트" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
+              <input v-model="workoutForm.repsPerSet" type="number" placeholder="회/분" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
+              <input v-model="workoutForm.durationMinutes" type="number" placeholder="시간(분)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
             </div>
             <button @click="addWorkoutLog" class="w-full mt-4 bg-pastel-yellow text-white py-3 rounded-xl font-bold hover:bg-pastel-yellow/90 transition-colors shadow-sm">
               등록하기
@@ -330,13 +295,13 @@ const addRunningLog = () => {
                   🏋️
                 </div>
                 <div>
-                  <span class="text-xs font-bold text-pastel-yellow bg-pastel-yellow/10 px-2 py-1 rounded-full">{{ log.type }}</span>
-                  <p class="font-bold text-soft-black mt-1">{{ log.exercise }}</p>
+                  <span class="text-xs font-bold text-pastel-yellow bg-pastel-yellow/10 px-2 py-1 rounded-full">{{ log.part }}</span>
+                  <p class="font-bold text-soft-black mt-1">{{ log.exerciseName }}</p>
                 </div>
               </div>
               <div class="text-right text-sm text-gray-500">
-                <p v-if="log.sets">{{ log.sets }}세트 x {{ log.reps }}회</p>
-                <p v-if="log.duration">{{ log.duration }}분</p>
+                <p v-if="log.setCount">{{ log.setCount }}세트 x {{ log.repsPerSet }}회</p>
+                <p v-if="log.durationMinutes">{{ log.durationMinutes }}분</p>
               </div>
             </div>
           </div>
@@ -354,7 +319,7 @@ const addRunningLog = () => {
             </div>
             <div class="grid grid-cols-2 gap-4">
               <input v-model="runningForm.distance" type="number" step="0.1" placeholder="거리 (km)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-blue" />
-              <input v-model="runningForm.time" type="number" placeholder="시간 (분)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-blue" />
+              <input v-model="runningForm.durationMinutes" type="number" placeholder="시간 (분)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-blue" />
             </div>
             <button @click="addRunningLog" class="w-full mt-4 bg-pastel-blue text-white py-3 rounded-xl font-bold hover:bg-pastel-blue/90 transition-colors shadow-sm">
               등록하기
@@ -379,7 +344,7 @@ const addRunningLog = () => {
               </div>
               <div class="text-right">
                 <p class="font-bold text-pastel-blue text-lg">{{ log.distance }} km</p>
-                <p class="text-sm text-gray-500">{{ log.time }}분</p>
+                <p class="text-sm text-gray-500">{{ log.durationMinutes }}분</p>
               </div>
             </div>
           </div>

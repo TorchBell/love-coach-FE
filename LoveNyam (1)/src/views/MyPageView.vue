@@ -1,55 +1,70 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import MainLayout from '../layouts/MainLayout.vue'
+import { UI_IMAGES } from '@/assets/dummy/index.js'
+import { useAuthStore } from '@/stores/authStore'
+import { storeToRefs } from 'pinia'
 
-// User data (mock)
-const user = ref({
-  name: '김싸피',
-  avatar: 'https://via.placeholder.com/150/FFB6C1/FFFFFF?text=JD',
-  level: 5,
-  xp: 1250,
-  nextLevelXp: 1500,
-  joinDate: '2024-01-01',
-  streakDays: 7
-})
+const authStore = useAuthStore()
+const { user } = storeToRefs(authStore)
 
-// Health data (mock)
-const healthData = ref({
-  currentWeight: 70.5,
-  goalWeight: 65.0,
-  height: 175, // cm
-  age: 28,
-  gender: 'Male'
-})
+// Fallback data if user is not loaded
+const defaultUser = {
+  name: 'Guest',
+  avatar: UI_IMAGES.defaultAvatar,
+  level: 1,
+  xp: 0,
+  nextLevelXp: 100,
+  joinDate: '-',
+  streakDays: 0,
+  healthData: {
+    currentWeight: 0,
+    goalWeight: 0,
+    height: 0,
+    age: 0,
+    gender: '-'
+  },
+  stats: {
+    totalWorkouts: 0,
+    totalMeals: 0,
+    totalRuns: 0,
+    achievementsEarned: 0,
+    totalAchievements: 0
+  }
+}
+
+const userData = computed(() => user.value || defaultUser)
+const healthData = computed(() => userData.value.healthData || defaultUser.healthData)
+const stats = computed(() => userData.value.stats || defaultUser.stats)
 
 // Calculated BMI
 const bmi = computed(() => {
   const heightInMeters = healthData.value.height / 100
+  if (heightInMeters === 0) return 0
   return (healthData.value.currentWeight / (heightInMeters * heightInMeters)).toFixed(1)
 })
 
 const bmiCategory = computed(() => {
   const value = parseFloat(bmi.value)
+  if (value === 0) return { text: '-', color: 'text-gray-500' }
   if (value < 18.5) return { text: '저체중', color: 'text-blue-500' }
   if (value < 25) return { text: '정상', color: 'text-green-500' }
   if (value < 30) return { text: '과체중', color: 'text-yellow-500' }
   return { text: '비만', color: 'text-red-500' }
 })
 
-// Stats (mock)
-const stats = ref({
-  totalWorkouts: 45,
-  totalMeals: 135,
-  totalRuns: 28,
-  achievementsEarned: 8,
-  totalAchievements: 20
-})
-
 // Progress percentage
 const progressToGoal = computed(() => {
+  if (healthData.value.currentWeight === 0) return 0
   const progress = Math.abs(healthData.value.currentWeight - healthData.value.goalWeight)
-  const total = Math.abs(70.5 - healthData.value.goalWeight)
+  const total = Math.abs(70.5 - healthData.value.goalWeight) // Mock initial weight
   return Math.max(0, Math.min(100, ((total - progress) / total) * 100)).toFixed(0)
+})
+
+onMounted(async () => {
+  if (!authStore.isAuthenticated) {
+    await authStore.login({ username: 'ssafy', password: '1234' })
+  }
 })
 </script>
 
@@ -67,19 +82,19 @@ const progressToGoal = computed(() => {
         <div class="flex items-center gap-6 mb-6">
           <!-- Avatar -->
           <div class="w-24 h-24 rounded-full overflow-hidden ring-4 ring-pastel-red shadow-lg">
-            <img :src="user.avatar" :alt="user.name" class="w-full h-full object-cover" />
+            <img :src="userData.avatar" :alt="userData.name" class="w-full h-full object-cover" />
           </div>
           <!-- User Info -->
           <div class="flex-1">
-            <h2 class="text-3xl font-bold text-soft-black mb-2">{{ user.name }}</h2>
+            <h2 class="text-3xl font-bold text-soft-black mb-2">{{ userData.name }}</h2>
             <div class="flex items-center gap-4">
-              <span class="px-3 py-1 bg-pastel-red/20 rounded-full text-sm font-semibold text-pastel-red">레벨 {{ user.level }}</span>
-              <span class="text-gray-500 text-sm">가입일: {{ user.joinDate }}</span>
+              <span class="px-3 py-1 bg-pastel-red/20 rounded-full text-sm font-semibold text-pastel-red">레벨 {{ userData.level }}</span>
+              <span class="text-gray-500 text-sm">가입일: {{ userData.joinDate }}</span>
             </div>
           </div>
           <!-- Streak Badge -->
           <div class="bg-white rounded-2xl px-6 py-4 shadow-md text-center">
-            <p class="text-4xl font-bold text-pastel-red">{{ user.streakDays }}</p>
+            <p class="text-4xl font-bold text-pastel-red">{{ userData.streakDays }}</p>
             <p class="text-xs text-gray-500 font-semibold">일 연속 🔥</p>
           </div>
         </div>
@@ -88,15 +103,15 @@ const progressToGoal = computed(() => {
         <div class="bg-white/80 rounded-xl p-4">
           <div class="flex justify-between text-sm font-semibold text-gray-700 mb-2">
             <span>경험치</span>
-            <span class="text-pastel-red">{{ user.xp }} / {{ user.nextLevelXp }} XP</span>
+            <span class="text-pastel-red">{{ userData.xp }} / {{ userData.nextLevelXp }} XP</span>
           </div>
           <div class="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
             <div 
               class="h-full bg-gradient-to-r from-pastel-red to-pastel-yellow rounded-full transition-all duration-700"
-              :style="{ width: `${(user.xp / user.nextLevelXp) * 100}%` }"
+              :style="{ width: `${(userData.xp / userData.nextLevelXp) * 100}%` }"
             ></div>
           </div>
-          <p class="text-xs text-gray-500 mt-1">레벨 {{ user.level + 1 }}까지 {{ Math.round((user.xp / user.nextLevelXp) * 100) }}% 남음</p>
+          <p class="text-xs text-gray-500 mt-1">레벨 {{ userData.level + 1 }}까지 {{ Math.round((userData.xp / userData.nextLevelXp) * 100) }}% 남음</p>
         </div>
       </div>
 
