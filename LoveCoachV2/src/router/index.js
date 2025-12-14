@@ -38,6 +38,11 @@ const router = createRouter({
             component: MyPageView
         },
         {
+            path: '/mypage/edit',
+            name: 'editProfile',
+            component: () => import('../views/EditProfileView.vue')
+        },
+        {
             path: '/achievement',
             name: 'achievement',
             component: AchievementView

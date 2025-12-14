@@ -1,10 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 import MainLayout from '../layouts/MainLayout.vue'
+import DeleteAccountModal from '../components/DeleteAccountModal.vue'
 
+const router = useRouter()
 const authStore = useAuthStore()
+const showDeleteModal = ref(false)
 
 // Mock Data for Tokens and Stats
 const tokens = ref({
@@ -64,14 +68,23 @@ onMounted(() => {
 })
 
 const handleEditProfile = () => {
-  alert('회원정보 수정 기능은 준비 중입니다.')
+  router.push('/mypage/edit')
 }
 
 const handleDeleteAccount = () => {
-  if (confirm('정말로 탈퇴하시겠습니까?')) {
-    alert('탈퇴 처리가 완료되었습니다.')
-    authStore.logout()
-  }
+  showDeleteModal.value = true
+}
+
+const handleDeleteCancel = () => {
+  showDeleteModal.value = false
+}
+
+const handleDeleteConfirm = async () => {
+  showDeleteModal.value = false
+  // Simulate API call
+  alert('탈퇴 처리가 완료되었습니다.')
+  await authStore.logout()
+  router.push('/')
 }
 </script>
 
@@ -209,5 +222,12 @@ const handleDeleteAccount = () => {
       </div>
 
     </div>
+
+    <!-- Delete Account Modal -->
+    <DeleteAccountModal 
+      :show="showDeleteModal"
+      @cancel="handleDeleteCancel"
+      @confirm="handleDeleteConfirm"
+    />
   </MainLayout>
 </template>
