@@ -49,7 +49,7 @@ export const logApi = {
         await delay(300)
         return {
             data: [
-                { id: 1, date: date, location: '한강 공원', distance: 5.2, durationMinutes: 35, burnedKcal: 300 },
+                { id: 1, date: date, exerciseType: '달리기', durationMinutes: 35, burnedKcal: 300 },
             ]
         }
     },
@@ -72,7 +72,7 @@ export const logApi = {
         } else if (type === 'workout') {
             return { data: { title: '이번 달 운동', stats: [{ label: '총 시간', value: '12시간' }, { label: '소모 칼로리', value: '4,500' }] } }
         } else {
-            return { data: { title: '이번 달 러닝', stats: [{ label: '총 거리', value: '45.5km' }, { label: '평균 페이스', value: '5:45' }] } }
+            return { data: { title: '이번 달 유산소', stats: [{ label: '총 소모 칼로리', value: '6,200kcal' }, { label: '총 운동 시간', value: '14시간' }] } }
         }
     },
 

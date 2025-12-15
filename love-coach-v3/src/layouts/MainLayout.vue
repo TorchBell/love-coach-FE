@@ -5,6 +5,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuthStore } from '@/stores/authStore'
+import tomaIcon from '@/assets/smallIcon/toma.jpg'
+import belleIcon from '@/assets/smallIcon/belle.jpg'
+import chiiIcon from '@/assets/smallIcon/chii.jpg'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,9 +32,9 @@ const aiCharacter = computed(() => {
 })
 
 const getAiImage = (char) => {
-  if (char === 'belle') return CHAR_IMAGES.belle
-  if (char === 'chie') return CHAR_IMAGES.chie
-  return CHAR_IMAGES.toma
+  if (char === 'belle') return belleIcon
+  if (char === 'chie') return chiiIcon // MainLayout uses 'chie', file is 'chii'
+  return tomaIcon
 }
 
 </script>

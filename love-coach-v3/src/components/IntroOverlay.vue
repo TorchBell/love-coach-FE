@@ -4,6 +4,9 @@ import PixelButton from './PixelButton.vue'
 import { useMotion } from '@vueuse/motion'
 import { useRouter } from 'vue-router'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
+import tomaIcon from '@/assets/smallIcon/toma.jpg'
+import belleIcon from '@/assets/smallIcon/belle.jpg'
+import chiiIcon from '@/assets/smallIcon/chii.jpg'
 
 const router = useRouter()
 const emit = defineEmits(['start'])
@@ -91,9 +94,18 @@ onMounted(() => {
       </div>
 
       <div class="flex flex-col gap-4" v-if="showChoices">
-        <PixelButton variant="primary" @click="handleChoice(1)" class="text-white font-bold text-lg shadow-md bg-pastel-red hover:bg-pastel-red/80 border-2 border-white">1. 식단 등록하러 왔어</PixelButton>
-        <PixelButton variant="secondary" @click="handleChoice(2)" class="text-soft-black font-bold text-lg shadow-md bg-pastel-yellow hover:bg-pastel-yellow/80 border-2 border-white">2. 근력운동 등록하러 왔어</PixelButton>
-        <PixelButton variant="accent" @click="handleChoice(3)" class="text-white font-bold text-lg shadow-md bg-pastel-blue hover:bg-pastel-blue/80 border-2 border-white">3. 유산소운동 등록하러 왔어</PixelButton>
+        <PixelButton variant="primary" @click="handleChoice(1)" class="text-white font-bold text-lg shadow-md bg-pastel-red hover:bg-pastel-red/80 border-2 border-white flex items-center justify-center gap-3">
+          <img :src="tomaIcon" class="w-10 h-10 rounded-full border-2 border-white object-cover" />
+          <span>1. 식단 등록하러 왔어</span>
+        </PixelButton>
+        <PixelButton variant="secondary" @click="handleChoice(2)" class="text-soft-black font-bold text-lg shadow-md bg-pastel-yellow hover:bg-pastel-yellow/80 border-2 border-white flex items-center justify-center gap-3">
+          <img :src="belleIcon" class="w-10 h-10 rounded-full border-2 border-white object-cover" />
+          <span>2. 근력운동 등록하러 왔어</span>
+        </PixelButton>
+        <PixelButton variant="accent" @click="handleChoice(3)" class="text-white font-bold text-lg shadow-md bg-pastel-blue hover:bg-pastel-blue/80 border-2 border-white flex items-center justify-center gap-3">
+          <img :src="chiiIcon" class="w-10 h-10 rounded-full border-2 border-white object-cover" />
+          <span>3. 유산소운동 등록하러 왔어</span>
+        </PixelButton>
       </div>
     </div>
   </div>

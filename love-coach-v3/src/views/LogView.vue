@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import MainLayout from '../layouts/MainLayout.vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CHAR_IMAGES } from '@/assets/dummy/index.js'
+import { CHAR_IMAGES, LOG_IMAGES } from '@/assets/dummy/index.js'
 import { useUiStore } from '@/stores/uiStore'
 import { useLogStore } from '@/stores/logStore'
 import { storeToRefs } from 'pinia'
@@ -23,9 +23,9 @@ const {
 } = storeToRefs(logStore)
 
 const tabs = [
-  { id: 'diet', name: '식단', icon: '🥗', color: 'bg-pastel-red', image: CHAR_IMAGES.toma, description: '토마와 함께!' },
-  { id: 'workout', name: '운동', icon: '💪', color: 'bg-pastel-yellow', image: CHAR_IMAGES.belle, description: '벨과 득근!' },
-  { id: 'running', name: '러닝', icon: '🏃', color: 'bg-pastel-blue', image: CHAR_IMAGES.chie, description: '치에와 질주!' }
+  { id: 'diet', name: '식단', image: LOG_IMAGES.toma, color: 'text-pastel-red', border: 'border-pastel-red', bg: 'bg-pastel-red/10' },
+  { id: 'workout', name: '근력', image: LOG_IMAGES.belle, color: 'text-pastel-blue', border: 'border-pastel-blue', bg: 'bg-pastel-blue/10' },
+  { id: 'running', name: '유산소', image: LOG_IMAGES.chie, color: 'text-pastel-yellow', border: 'border-pastel-yellow', bg: 'bg-pastel-yellow/10' }
 ]
 
 const setActiveTab = (tabId) => {
@@ -96,8 +96,8 @@ const calendarData = ref({
 
 // --- Form States (Simplified) ---
 const dietForm = ref({ foodName: '', calory: '' })
-const workoutForm = ref({ part: '전신', exerciseName: '', setCount: '', repsPerSet: '', durationMinutes: '' })
-const runningForm = ref({ location: '', distance: '', durationMinutes: '' })
+const workoutForm = ref({ part: '가슴', exerciseName: '', setCount: '', repsPerSet: '' })
+const runningForm = ref({ exerciseType: '', durationMinutes: '' })
 
 const addDietLog = async () => {
   if (!dietForm.value.foodName) return
@@ -118,18 +118,18 @@ const addWorkoutLog = async () => {
     date: selectedDate.value.toDateString(),
     ...workoutForm.value 
   })
-  workoutForm.value = { part: '전신', exerciseName: '', setCount: '', repsPerSet: '', durationMinutes: '' }
+  workoutForm.value = { part: '가슴', exerciseName: '', setCount: '', repsPerSet: '' }
   const day = selectedDate.value.getDate()
   if (!calendarData.value[day]) calendarData.value[day] = []
   if (!calendarData.value[day].includes('workout')) calendarData.value[day].push('workout')
 }
 const addRunningLog = async () => {
-  if (!runningForm.value.location) return
+  if (!runningForm.value.exerciseType) return
   await logStore.addRunningLog({ 
     date: selectedDate.value.toDateString(),
     ...runningForm.value 
   })
-  runningForm.value = { location: '', distance: '', durationMinutes: '' }
+  runningForm.value = { exerciseType: '', durationMinutes: '' }
   const day = selectedDate.value.getDate()
   if (!calendarData.value[day]) calendarData.value[day] = []
   if (!calendarData.value[day].includes('running')) calendarData.value[day].push('running')
@@ -146,29 +146,30 @@ const addRunningLog = async () => {
       </div>
 
       <!-- Character Tabs -->
-      <div class="grid grid-cols-3 gap-4 mb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
         <div
           v-for="tab in tabs"
           :key="tab.id"
-          role="button"
-          tabindex="0"
+          class="flex flex-col items-center gap-2 md:gap-4 group cursor-pointer"
           @click="setActiveTab(tab.id)"
           @keydown.enter="setActiveTab(tab.id)"
-          class="relative h-48 rounded-3xl overflow-hidden transition-all duration-300 group border-4 cursor-pointer"
-          :class="activeTab === tab.id ? `border-pastel-red shadow-xl scale-105` : 'border-transparent hover:border-pastel-red/30 grayscale hover:grayscale-0'"
+          role="button"
+          tabindex="0"
         >
-          <!-- Background Image -->
-          <img :src="tab.image" :alt="tab.name" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-          
-          <!-- Overlay -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4 text-white text-left">
-            <div class="transform transition-transform duration-300" :class="activeTab === tab.id ? 'translate-y-0' : 'translate-y-2'">
-              <p class="text-xs font-bold opacity-80 mb-1">{{ tab.description }}</p>
-              <h3 class="text-2xl font-bold flex items-center gap-2">
-                <span>{{ tab.icon }}</span>
-                {{ tab.name }}
-              </h3>
-            </div>
+          <!-- Badge (Name Tag outside) -->
+          <div 
+            class="px-4 py-1.5 md:px-8 md:py-2 rounded-full border-2 bg-white shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-1 whitespace-nowrap"
+            :class="[tab.border, activeTab === tab.id ? 'ring-2 ring-offset-2 ' + tab.border.replace('border-', 'ring-') : '']"
+          >
+            <span class="text-sm md:text-xl font-bold tracking-widest transition-all duration-300" :class="tab.color">{{ tab.name }}</span>
+          </div>
+
+          <!-- Image Container -->
+          <div 
+            class="relative w-full max-w-[200px] sm:max-w-none aspect-[4/3] rounded-3xl overflow-hidden shadow-md transition-all duration-300 border-4"
+            :class="activeTab === tab.id ? tab.border + ' shadow-xl scale-105' : 'border-transparent grayscale hover:grayscale-0 hover:shadow-lg'"
+          >
+            <img :src="tab.image" :alt="tab.name" class="w-full h-full object-cover" />
           </div>
         </div>
       </div>
@@ -262,21 +263,21 @@ const addRunningLog = async () => {
           <!-- Input Form -->
           <div class="bg-cream/50 p-6 rounded-2xl border border-pastel-yellow/20">
             <h3 class="text-xl font-bold text-pastel-yellow mb-4 flex items-center gap-2">
-              <span>💪</span> 운동 기록하기
+              <span>💪</span> 근력 기록하기
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <select v-model="workoutForm.part" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow">
-                <option>전신</option>
-                <option>상체</option>
+                <option>가슴</option>
+                <option>등</option>
+                <option>팔</option>
                 <option>하체</option>
-                <option>유산소</option>
+                <option>복근</option>
               </select>
               <input v-model="workoutForm.exerciseName" placeholder="운동 이름 (예: 스쿼트)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
             </div>
-            <div class="grid grid-cols-3 gap-4">
-              <input v-model="workoutForm.setCount" type="number" placeholder="세트" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
-              <input v-model="workoutForm.repsPerSet" type="number" placeholder="회/분" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
-              <input v-model="workoutForm.durationMinutes" type="number" placeholder="시간(분)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
+            <div class="grid grid-cols-2 gap-4">
+              <input v-model="workoutForm.setCount" type="number" placeholder="세트 (Set)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
+              <input v-model="workoutForm.repsPerSet" type="number" placeholder="회 (Reps)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-yellow" />
             </div>
             <button @click="addWorkoutLog" class="w-full mt-4 bg-pastel-yellow text-white py-3 rounded-xl font-bold hover:bg-pastel-yellow/90 transition-colors shadow-sm">
               등록하기
@@ -300,8 +301,7 @@ const addRunningLog = async () => {
                 </div>
               </div>
               <div class="text-right text-sm text-gray-500">
-                <p v-if="log.setCount">{{ log.setCount }}세트 x {{ log.repsPerSet }}회</p>
-                <p v-if="log.durationMinutes">{{ log.durationMinutes }}분</p>
+                <p v-if="log.setCount" class="font-bold text-pastel-yellow text-lg">{{ log.setCount }}세트 <span class="text-gray-400 text-sm">x</span> {{ log.repsPerSet }}회</p>
               </div>
             </div>
           </div>
@@ -312,14 +312,11 @@ const addRunningLog = async () => {
           <!-- Input Form -->
           <div class="bg-cream/50 p-6 rounded-2xl border border-pastel-blue/20">
             <h3 class="text-xl font-bold text-pastel-blue mb-4 flex items-center gap-2">
-              <span>🏃</span> 러닝 기록하기
+              <span>🏃</span> 유산소 기록하기
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <input v-model="runningForm.location" placeholder="러닝 장소 (예: 한강 공원)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-blue md:col-span-2" />
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <input v-model="runningForm.distance" type="number" step="0.1" placeholder="거리 (km)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-blue" />
-              <input v-model="runningForm.durationMinutes" type="number" placeholder="시간 (분)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-blue" />
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input v-model="runningForm.exerciseType" placeholder="운동 종류 (예: 수영, 달리기)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-blue" />
+              <input v-model="runningForm.durationMinutes" type="number" placeholder="운동 시간 (분)" class="p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-blue" />
             </div>
             <button @click="addRunningLog" class="w-full mt-4 bg-pastel-blue text-white py-3 rounded-xl font-bold hover:bg-pastel-blue/90 transition-colors shadow-sm">
               등록하기
@@ -338,13 +335,12 @@ const addRunningLog = async () => {
                   👟
                 </div>
                 <div>
-                  <p class="font-bold text-soft-black">{{ log.location }}</p>
+                  <p class="font-bold text-soft-black">{{ log.exerciseType }}</p>
                   <p class="text-xs text-gray-400">{{ formattedSelectedDate }}</p>
                 </div>
               </div>
               <div class="text-right">
-                <p class="font-bold text-pastel-blue text-lg">{{ log.distance }} km</p>
-                <p class="text-sm text-gray-500">{{ log.durationMinutes }}분</p>
+                <p class="font-bold text-pastel-blue text-lg">{{ log.durationMinutes }}분</p>
               </div>
             </div>
           </div>

@@ -10,9 +10,9 @@ const authStore = useAuthStore()
 const activeTab = ref('toma') // 'toma', 'belle', 'chie'
 
 const tabs = [
-  { id: 'toma', name: '토마의 식단', icon: '🥗', color: 'bg-pastel-red', image: CHAR_IMAGES.toma, description: '토마와 함께!' },
-  { id: 'belle', name: '벨의 근력 운동', icon: '💪', color: 'bg-pastel-yellow', image: CHAR_IMAGES.belle, description: '벨과 득근!' },
-  { id: 'chie', name: '치이의 유산소 운동', icon: '🏃', color: 'bg-pastel-blue', image: CHAR_IMAGES.chie, description: '치에와 질주!' }
+  { id: 'toma', name: '식단', color: 'bg-pastel-red', image: CHAR_IMAGES.toma, description: '토마와 함께!' },
+  { id: 'belle', name: '근력', color: 'bg-pastel-yellow', image: CHAR_IMAGES.belle, description: '벨과 득근!' },
+  { id: 'chie', name: '유산소', color: 'bg-pastel-blue', image: CHAR_IMAGES.chie, description: '치에와 질주!' }
 ]
 
 // --- Mock Data for Character Achievements (V6: Affinity Rewards) ---
@@ -91,25 +91,25 @@ const getAchievementImage = (key) => {
           v-for="tab in tabs" 
           :key="tab.id"
           @click="activeTab = tab.id"
-          class="relative overflow-hidden rounded-2xl p-4 transition-all duration-300 border-2 flex items-center justify-center gap-3"
+          class="relative overflow-hidden rounded-2xl p-2 md:p-4 transition-all duration-300 border-2 flex items-center justify-center gap-3"
           :class="activeTab === tab.id 
             ? 'bg-white shadow-lg scale-105 border-pastel-red' 
             : 'bg-white/60 border-transparent hover:bg-white hover:shadow-md'"
         >
           <!-- Character Avatar -->
-          <div class="w-12 h-12 rounded-full overflow-hidden border-2 flex-shrink-0"
+          <div class="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 flex-shrink-0"
                :class="activeTab === tab.id ? 'border-pastel-red' : 'border-gray-200'">
             <img :src="tab.image" class="w-full h-full object-cover" />
           </div>
           
-          <!-- Tab Info -->
-          <div class="text-left flex-1 min-w-0">
+          <!-- Tab Info (Hidden on reduced screens) -->
+          <div class="text-left flex-1 min-w-0 hidden lg:block">
             <h3 class="font-bold text-sm text-gray-800 truncate">{{ tab.name }}</h3>
             <p class="text-xs text-gray-400 truncate">{{ tab.description }}</p>
           </div>
           
-          <!-- Icon (Active Only) -->
-          <span v-if="activeTab === tab.id" class="text-xl flex-shrink-0">{{ tab.icon }}</span>
+          <!-- Icon (Active Only - Hidden on very small screens if needed, but keeping for now) -->
+          <span v-if="activeTab === tab.id" class="text-xl flex-shrink-0 hidden sm:block">{{ tab.icon }}</span>
         </button>
       </div>
 
@@ -141,7 +141,7 @@ const getAchievementImage = (key) => {
         </div>
 
         <!-- Achievement List (Single Column for Readability) -->
-        <div class="space-y-4 max-h-[500px] overflow-y-auto scrollbar-hide pr-2">
+        <div class="space-y-4 max-h-[500px] overflow-y-auto scrollbar-hide px-2 pt-2 -mr-2 md:-mr-4 pr-2 md:pr-4">
           <div 
             v-for="item in characterAchievements[activeTab].items" 
             :key="item.id"

@@ -1,6 +1,15 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useMotion } from '@vueuse/motion'
+import tomaIcon from '@/assets/smallIcon/toma.jpg'
+import belleIcon from '@/assets/smallIcon/belle.jpg'
+import chiiIcon from '@/assets/smallIcon/chii.jpg'
+
+const choiceIcons = {
+  1: tomaIcon,
+  2: belleIcon,
+  3: chiiIcon
+}
 
 const props = defineProps({
   visible: Boolean,
@@ -34,9 +43,15 @@ const dialogRef = ref(null)
         v-for="choice in choices" 
         :key="choice.id"
         @click="$emit('select', choice.id)"
-        class="bg-gradient-to-r from-white to-cream hover:from-pastel-red hover:to-pink-400 hover:text-white text-soft-black px-8 py-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 hover:-translate-x-2 font-bold text-lg border-2 border-pastel-red/30 hover:border-white text-right min-w-[300px] backdrop-blur-sm"
+        class="bg-gradient-to-r from-white to-cream hover:from-pastel-red hover:to-pink-400 hover:text-white text-soft-black px-8 py-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 hover:-translate-x-2 font-bold text-lg border-2 border-pastel-red/30 hover:border-white text-right min-w-[300px] backdrop-blur-sm flex items-center justify-end gap-3"
       >
-        {{ choice.text }}
+        <span>{{ choice.text }}</span>
+        <img 
+          v-if="choiceIcons[choice.id]" 
+          :src="choiceIcons[choice.id]" 
+          class="w-8 h-8 rounded-full border border-gray-200 object-cover" 
+          alt="icon" 
+        />
       </button>
     </div>
 

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 import CharacterDialog from '../components/CharacterDialog.vue'
 import { useAuthStore } from '@/stores/authStore'
+import { ICONS } from '@/assets/icons/index.js'
 
 import { DIALOG_TEXT, DIALOG_CHOICES } from '@/constants/text.js'
 
@@ -64,11 +65,11 @@ const handleMouseOut = () => {
 
 // Updated menu items for left sidebar
 const menuItems = [
-  { id: 'gallery', label: '갤러리', path: '/gallery', icon: '🖼️' },
-  { id: 'log', label: '기록', path: '/log', icon: '📝' },
-  { id: 'achievement', label: '업적', path: '/achievement', icon: '🏆' },
-  { id: 'mypage', label: '마이페이지', path: '/mypage', icon: '👤' },
-  { id: 'logout', label: '로그아웃', path: '#', icon: '🚪' },
+  { id: 'gallery', label: '갤러리', path: '/gallery' },
+  { id: 'log', label: '기록', path: '/log' },
+  { id: 'achievement', label: '업적', path: '/achievement' },
+  { id: 'mypage', label: '마이페이지', path: '/mypage' },
+  { id: 'logout', label: '로그아웃', path: '#' },
 ]
 
 const handleMenuClick = async (item) => {
@@ -125,7 +126,7 @@ const handleChoice = (choiceId) => {
     
     <!-- Left Section (Login/Nav) -->
     <div class="w-full md:w-1/3 z-20 flex flex-col justify-center px-8 md:pl-16 space-y-8 min-h-[50vh] md:min-h-screen bg-white/30 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none">
-      <h1 className="text-5xl md:text-6xl font-bold text-pastel-red font-pixel mb-8 md:mb-12 tracking-wider drop-shadow-sm text-center md:text-left">
+      <h1 class="text-5xl md:text-6xl font-bold text-pastel-red font-pixel mb-8 md:mb-12 tracking-wider drop-shadow-sm text-center md:text-left">
         Love<br>Coach
       </h1>
       
@@ -181,7 +182,30 @@ const handleChoice = (choiceId) => {
           @click="handleMenuClick(item)"
           class="group flex items-center space-x-6 text-3xl font-bold text-gray-500 hover:text-pastel-red transition-all duration-300 transform hover:translate-x-4 hover:scale-105"
         >
-          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-4xl filter drop-shadow-md">{{ item.icon }}</span>
+          <!-- Custom Icon for Gallery -->
+          <img 
+            v-if="item.id === 'gallery'"
+            :src="ICONS.tomaGallery" 
+            alt="gallery" 
+            class="w-12 h-12 opacity-0 group-hover:opacity-100 transition-all duration-300 filter drop-shadow-md transform group-hover:scale-125 group-hover:rotate-12 group-hover:animate-bounce"
+          />
+          <!-- Custom Icon for Log -->
+          <img 
+            v-else-if="item.id === 'log'"
+            :src="ICONS.belleLog" 
+            alt="log" 
+            class="w-12 h-12 opacity-0 group-hover:opacity-100 transition-all duration-300 filter drop-shadow-md transform group-hover:scale-125 group-hover:-rotate-12 group-hover:animate-bounce"
+          />
+          <!-- Custom Icon for Achievement -->
+          <img 
+            v-else-if="item.id === 'achievement'"
+            :src="ICONS.chiiAchievement" 
+            alt="achievement" 
+            class="w-12 h-12 opacity-0 group-hover:opacity-100 transition-all duration-300 filter drop-shadow-md transform group-hover:scale-125 group-hover:rotate-6 group-hover:animate-bounce"
+          />
+          <!-- Empty space for items without icons (for alignment) -->
+          <div v-else class="w-12 h-12"></div>
+          
           <span class="relative">
             {{ item.label }}
             <span class="absolute -bottom-2 left-0 w-0 h-1 bg-pastel-red transition-all duration-300 group-hover:w-full"></span>
