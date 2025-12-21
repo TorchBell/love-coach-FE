@@ -12,7 +12,7 @@ app.use(pinia)
 app.use(router)
 app.use(MotionPlugin)
 
-// Global Error Handler for Debugging
+// 디버깅을 위한 전역 에러 핸들러
 window.onerror = function (message, source, lineno, colno, error) {
     const errorDiv = document.createElement('div');
     errorDiv.style.position = 'fixed';

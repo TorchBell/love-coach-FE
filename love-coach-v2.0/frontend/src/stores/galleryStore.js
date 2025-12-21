@@ -6,7 +6,7 @@ import { galleryApi } from '@/api/galleryApi'
  * 갤러리 상태 관리
  */
 export const useGalleryStore = defineStore('gallery', () => {
-    // State
+    // 상태
     const galleries = ref([])
     const isLoading = ref(false)
     const error = ref(null)

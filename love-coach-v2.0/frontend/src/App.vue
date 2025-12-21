@@ -11,12 +11,12 @@ const route = useRoute()
 const authStore = useAuthStore()
 const showDialog = ref(false)
 
-// Restore session on app load
+// 앱 로드 시 세션 복구
 onMounted(async () => {
   await authStore.fetchUserProfile()
 })
 
-// Scroll Detection for Dialog (listen from child routes)
+// 다이얼로그 스크롤 감지 (자식 라우트에서 수신)
 const handleScroll = (e) => {
   if (e && e.target) {
     const scrollPosition = e.target.scrollTop
@@ -24,20 +24,20 @@ const handleScroll = (e) => {
   }
 }
 
-// Expose handleScroll to child components if needed
+// 필요시 자식 컴포넌트에 handleScroll 노출
 defineExpose({ handleScroll })
 </script>
 
 <template>
-  <!-- IntroOverlay removed - it was blocking the Landing page -->
+  <!-- IntroOverlay 제거됨 - 랜딩 페이지를 가리고 있었음 -->
   
-  <!-- Character Dialog (Scroll Triggered) - Only show on specific routes -->
+  <!-- 캐릭터 다이얼로그 (스크롤 트리거) - 특정 라우트에서만 표시 -->
   <CharacterDialog 
     :visible="showDialog && route.name !== 'landing' && route.name !== 'home'" 
     text="Welcome! Let's start your fitness journey together! 💪" 
     :character-image="mainCharacterBelle"
   />
 
-  <!-- Router View -->
+  <!-- 라우터 뷰 -->
   <router-view @scroll="handleScroll" />
 </template>

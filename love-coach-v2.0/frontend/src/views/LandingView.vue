@@ -16,13 +16,13 @@ onMounted(() => {
 })
 
 const handleKnock = () => {
-  // Mark as visited
+  // 방문 기록 저장
   localStorage.setItem('hasVisitedDoor', 'true')
   
-  // Trigger fade out to white
+  // 흰색 페이드 아웃 시작
   isFading.value = true
   
-  // Navigate after fade completes
+  // 페이드 완료 후 이동
   setTimeout(() => {
     router.push('/home')
   }, 1200)
@@ -34,7 +34,7 @@ const handleKnock = () => {
     v-if="showDoor"
     class="landing-container flex items-center justify-center min-h-screen bg-gradient-to-br from-pastel-pink via-cream to-pastel-blue overflow-hidden relative"
   >
-    <!-- White Fade Overlay -->
+    <!-- 흰색 페이드 오버레이 -->
     <Transition name="fade-white">
       <div 
         v-if="isFading" 
@@ -58,7 +58,7 @@ const handleKnock = () => {
         />
         <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity rounded-t-[2rem] pointer-events-none"></div>
         
-        <!-- Glow effect -->
+        <!-- 발광 효과 -->
         <div class="absolute inset-0 bg-white/30 blur-2xl opacity-50 -z-10 animate-pulse"></div>
       </div>
       
@@ -74,7 +74,7 @@ const handleKnock = () => {
   cursor: v-bind(cursorUrl);
 }
 
-/* White fade animation */
+/* 흰색 페이드 애니메이션 */
 .fade-white-enter-active {
   animation: fadeToWhite 1.2s ease-in-out;
 }
@@ -91,7 +91,7 @@ const handleKnock = () => {
   }
 }
 
-/* Background gradient animation */
+/* 배경 그라데이션 애니메이션 */
 .landing-container {
   background-size: 200% 200%;
   animation: gradientShift 8s ease infinite;

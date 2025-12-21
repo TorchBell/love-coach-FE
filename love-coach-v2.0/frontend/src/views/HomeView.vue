@@ -16,7 +16,7 @@ const showDialog = ref(false)
 const dialogText = ref('')
 const currentChoices = ref([])
 
-// Login State
+// 로그인 상태
 const loginForm = ref({
   email: '',
   password: '',
@@ -41,7 +41,7 @@ const handleLogin = async () => {
   if (!success) {
     errorMessage.value = '로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.'
   } else {
-    // Login successful
+    // 로그인 성공
     // if (authStore.user?.name) {
     //   dialogText.value = DIALOG_TEXT.GREETING_USER(authStore.user.name)
     // }
@@ -67,13 +67,13 @@ const handleMouseOut = () => {
   currentTomaImage.value = CHAR_IMAGES.tomai // 마우스 떼면 정지 이미지로 변경
 }
 
-// Preload GIF for smooth interaction
+// 부드러운 상호작용을 위한 GIF 프리로드
 onMounted(() => {
     const img = new Image()
     img.src = CHAR_IMAGES.tomahi
 })
 
-// Updated menu items for left sidebar
+// 왼쪽 사이드바 메뉴 아이콘 업데이트
 const menuItems = [
   { id: 'gallery', label: '갤러리', path: '/gallery' },
   { id: 'log', label: '기록', path: '/log' },
@@ -85,7 +85,7 @@ const menuItems = [
 const handleMenuClick = async (item) => {
   if (item.id === 'logout') {
     await authStore.logout()
-    // Stay on HomeView, reactivity will show Login Form
+    // HomeView 유지, 반응형으로 로그인 폼 표시
     return
   }
   router.push(item.path)
@@ -93,19 +93,19 @@ const handleMenuClick = async (item) => {
 
 const openDialog = () => {
   showDialog.value = true
-  // Check if we have a recent chat log? Or just start fresh/greeting.
-  // For now, use the mock text as initial greeting, or fetch from store if available.
+  // 최근 대화 기록이 있는지 확인? 아니면 새로 시작/인사.
+  // 현재는 더미 텍스트를 초기 인사로 사용하거나, 스토어에서 가져옴.
   dialogText.value = DIALOG_TEXT.ASK_HELP
-  currentChoices.value = DIALOG_CHOICES // Keep navigation shortcuts
+  currentChoices.value = DIALOG_CHOICES // 네비게이션 단축키 유지
 }
 
-// Handle Real Chat
+// 실제 대화 처리
 const handleSendMessage = async (message) => {
-  // Optimistic UI update or wait for response?
-  // Let's show "Thinking..." state if possible, or just update text when ready.
+  // 낙관적 UI 업데이트 또는 응답 대기?
+  // 가능하다면 "생각 중..." 상태를 표시하거나 준비되면 텍스트 업데이트.
   
-  // Assuming Toma (ID 1) as the default home character for now, or use logic to select.
-  // HomeView seems to feature Toma heavily.
+  // 현재는 토마(ID 1)를 기본 홈 캐릭터로 가정...
+  // HomeView는 토마를 주로 다룸.
   const npcId = 1 
   
   const response = await npcStore.sendMessage(npcId, message)
@@ -118,14 +118,14 @@ const handleSendMessage = async (message) => {
 }
 
 const handleChoice = (choiceId) => {
-  // Keep existing navigation logic
-  if (choiceId === 1) { // Diet
+  // 기존 네비게이션 로직 유지
+  if (choiceId === 1) { // 식단
     router.push({ path: '/log', query: { tab: 'diet' } })
-  } else if (choiceId === 2) { // Workout
+  } else if (choiceId === 2) { // 운동
     router.push({ path: '/log', query: { tab: 'workout' } })
-  } else if (choiceId === 3) { // Running
+  } else if (choiceId === 3) { // 러닝
     router.push({ path: '/log', query: { tab: 'running' } })
-  } else if (choiceId === 4) { // Close/Think
+  } else if (choiceId === 4) { // 닫기/생각
      showDialog.value = false
   }
 }
@@ -134,13 +134,13 @@ const handleChoice = (choiceId) => {
 <template>
   <div class="home-container min-h-screen bg-gradient-to-br from-cream via-white to-pastel-pink/30 relative overflow-hidden flex flex-col md:flex-row">
     
-    <!-- Left Section (Login/Nav) -->
+    <!-- 왼쪽 섹션 (로그인/네비게이션) -->
     <div class="w-full md:w-1/3 z-20 flex flex-col justify-center px-8 md:pl-16 space-y-8 min-h-[50vh] md:min-h-screen bg-white/30 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none">
       <h1 class="text-5xl md:text-6xl font-bold text-pastel-red font-pixel mb-8 md:mb-12 tracking-wider drop-shadow-sm text-center md:text-left">
         Love<br>Coach
       </h1>
       
-      <!-- Login Form (Unauthenticated) -->
+      <!-- 로그인 폼 (비인증) -->
       <div v-if="!authStore.isAuthenticated" class="bg-white/90 backdrop-blur-md p-8 rounded-3xl shadow-xl border-2 border-pastel-red/20 w-full max-w-sm mx-auto md:mx-0 transform md:translate-x-12 transition-all">
         <h2 class="text-2xl font-bold text-gray-700 mb-6 text-center md:text-left">로그인</h2>
         <div class="space-y-4">
@@ -184,7 +184,7 @@ const handleChoice = (choiceId) => {
         </div>
       </div>
 
-      <!-- Menu Items (Authenticated) -->
+      <!-- 메뉴 아이템 (인증됨) -->
       <nav v-else class="flex flex-col space-y-6 items-center md:items-start">
         <button 
           v-for="item in menuItems" 
@@ -192,28 +192,28 @@ const handleChoice = (choiceId) => {
           @click="handleMenuClick(item)"
           class="group flex items-center space-x-6 text-3xl font-bold text-gray-500 hover:text-pastel-red transition-all duration-300 transform hover:translate-x-4 hover:scale-105"
         >
-          <!-- Custom Icon for Gallery -->
+          <!-- 갤러리 커스텀 아이콘 -->
           <img 
             v-if="item.id === 'gallery'"
             :src="ICONS.tomaGallery" 
             alt="gallery" 
             class="w-12 h-12 opacity-0 group-hover:opacity-100 transition-all duration-300 filter drop-shadow-md transform group-hover:scale-125 group-hover:rotate-12 group-hover:animate-bounce"
           />
-          <!-- Custom Icon for Log -->
+          <!-- 기록 커스텀 아이콘 -->
           <img 
             v-else-if="item.id === 'log'"
             :src="ICONS.belleLog" 
             alt="log" 
             class="w-12 h-12 opacity-0 group-hover:opacity-100 transition-all duration-300 filter drop-shadow-md transform group-hover:scale-125 group-hover:-rotate-12 group-hover:animate-bounce"
           />
-          <!-- Custom Icon for Achievement -->
+          <!-- 업적 커스텀 아이콘 -->
           <img 
             v-else-if="item.id === 'achievement'"
             :src="ICONS.chiiAchievement" 
             alt="achievement" 
             class="w-12 h-12 opacity-0 group-hover:opacity-100 transition-all duration-300 filter drop-shadow-md transform group-hover:scale-125 group-hover:rotate-6 group-hover:animate-bounce"
           />
-          <!-- Empty space for items without icons (for alignment) -->
+          <!-- 아이콘 없는 아이템을 위한 빈 공간 (정렬용) -->
           <div v-else class="w-12 h-12"></div>
           
           <span class="relative">
@@ -224,7 +224,7 @@ const handleChoice = (choiceId) => {
       </nav>
     </div>
 
-    <!-- Right Section (Character) -->
+    <!-- 오른쪽 섹션 (캐릭터) -->
     <div class="w-full md:w-2/3 relative flex items-end justify-center z-10 h-[50vh] md:h-screen overflow-hidden">
       <img 
         :src="currentTomaImage" 

@@ -6,7 +6,7 @@ import { logApi } from '@/api/logApi'
  * 활동 기록 (식단, 근력, 유산소) 상태 관리
  */
 export const useLogStore = defineStore('log', () => {
-    // State
+    // 상태
     const dietLogs = ref([])
     const workoutLogs = ref([])
     const runningLogs = ref([])
@@ -18,10 +18,10 @@ export const useLogStore = defineStore('log', () => {
     const muscleExercises = ref([])
     const cardioExercises = ref([])
 
-    // Calendar Stamp State
+    // 캘린더 스탬프 상태
     const calendarLogStatus = ref({})
 
-    // Getters
+    // 계산된 속성 (Getters)
     const currentYear = computed(() => selectedDate.value.getFullYear())
     const currentMonth = computed(() => selectedDate.value.getMonth() + 1)
 
@@ -53,7 +53,7 @@ export const useLogStore = defineStore('log', () => {
     )
 
     // ============================================
-    // 월별 통계 (Monthly Statistics)
+    // 월별 통계
     // ============================================
 
     /**
@@ -92,7 +92,7 @@ export const useLogStore = defineStore('log', () => {
         }, 0)
     })
 
-    // Actions
+    // 동작 (Actions)
     const setSelectedDate = (date) => {
         selectedDate.value = date
     }
@@ -326,7 +326,7 @@ export const useLogStore = defineStore('log', () => {
     }
 
     return {
-        // State
+        // 상태
         dietLogs,
         workoutLogs,
         runningLogs,
@@ -336,7 +336,7 @@ export const useLogStore = defineStore('log', () => {
         muscleExercises,
         cardioExercises,
         calendarLogStatus,
-        // Getters
+        // 계산된 속성
         currentYear,
         currentMonth,
         formattedSelectedDate,
@@ -347,7 +347,7 @@ export const useLogStore = defineStore('log', () => {
         monthlyTotalCaloriesIntake,
         monthlyTotalVolume,
         monthlyTotalCaloriesBurned,
-        // Actions
+        // 동작
         setSelectedDate,
         fetchMonthlyLogs,
         fetchExercises,

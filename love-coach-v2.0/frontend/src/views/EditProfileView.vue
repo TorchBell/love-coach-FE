@@ -1,14 +1,14 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream/50 via-white to-pastel-red/10 relative overflow-hidden py-12">
     
-    <!-- Background Elements -->
+    <!-- 배경 요소 -->
     <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-pastel-red/20 rounded-full blur-3xl animate-pulse"></div>
     <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-pastel-yellow/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
 
-    <!-- Card Container -->
+    <!-- 카드 컨테이너 -->
     <div class="bg-white/80 backdrop-blur-xl px-8 py-10 md:px-12 md:py-12 rounded-3xl shadow-2xl w-full max-w-md border border-white/50 relative z-10 mx-4">
       
-      <!-- Header -->
+      <!-- 헤더 -->
       <div class="text-center mb-8">
         <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-pastel-red via-pastel-yellow to-pastel-blue bg-clip-text text-transparent mb-3">
           LoveCoach
@@ -17,10 +17,10 @@
         <p class="text-sm text-gray-500">프로필 정보를 업데이트하세요</p>
       </div>
 
-      <!-- Form -->
+      <!-- 폼 -->
       <div class="space-y-5">
         
-        <!-- Email (Disabled) -->
+        <!-- 이메일 (변경 불가) -->
         <div class="group">
           <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email (변경 불가)</label>
           <input 
@@ -31,7 +31,7 @@
           />
         </div>
         
-        <!-- Nickname -->
+        <!-- 닉네임 -->
         <div class="group">
           <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 group-focus-within:text-pastel-red transition-colors">Nickname</label>
           <input 
@@ -42,7 +42,7 @@
           />
         </div>
 
-        <!-- Gender -->
+        <!-- 성별 -->
         <div>
           <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Gender</label>
           <div class="flex gap-3">
@@ -61,7 +61,7 @@
           </div>
         </div>
 
-        <!-- Birth Date -->
+        <!-- 생년월일 -->
         <div class="group">
           <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 group-focus-within:text-pastel-red transition-colors">Birth Date</label>
           <input 
@@ -71,7 +71,7 @@
           />
         </div>
 
-        <!-- Buttons -->
+        <!-- 버튼 -->
         <div class="flex gap-3 mt-8">
           <button 
             @click="handleCancel" 
@@ -110,7 +110,7 @@ const form = ref({
 const isLoading = ref(false)
 
 onMounted(() => {
-  // Load current user data
+  // 현재 사용자 데이터 로드
   if (authStore.user) {
     form.value.email = authStore.user.email || ''
     form.value.nickname = authStore.user.name || ''

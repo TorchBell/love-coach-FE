@@ -1,13 +1,13 @@
 <script setup>
 import { ref } from 'vue'
 
-// Current date
+// 현재 날짜
 const currentDate = ref(new Date().toISOString().split('T')[0])
 
-// Current workout
+// 현재 운동
 const currentWorkout = ref('Chest Day')
 
-// Exercise list (mock data)
+// 운동 목록 (더미 데이터)
 const exercises = ref([
   {
     name: 'Bench Press',
@@ -41,7 +41,7 @@ const toggleSetCompletion = (exerciseIndex, setIndex) => {
 
 <template>
   <div class="workout-log-tab">
-    <!-- Header -->
+    <!-- 헤더 -->
     <div class="flex justify-between items-center mb-8">
       <div>
         <h2 class="text-3xl font-bold text-soft-black mb-2">Workout Log</h2>
@@ -54,7 +54,7 @@ const toggleSetCompletion = (exerciseIndex, setIndex) => {
       />
     </div>
 
-    <!-- Workout Summary -->
+    <!-- 운동 요약 -->
     <div class="grid grid-cols-3 gap-4 mb-8">
       <div class="bg-gradient-to-br from-pastel-yellow/20 to-pastel-yellow/5 rounded-xl p-5 border border-pastel-yellow/30">
         <p class="text-sm text-gray-600 mb-1">Total Exercises</p>
@@ -70,14 +70,14 @@ const toggleSetCompletion = (exerciseIndex, setIndex) => {
       </div>
     </div>
 
-    <!-- Exercise List -->
+    <!-- 운동 목록 -->
     <div class="space-y-6 mb-6">
       <div
         v-for="(exercise, exIndex) in exercises"
         :key="exIndex"
         class="bg-white rounded-2xl p-6 border-2 border-gray-100 hover:border-pastel-yellow/50 transition-all duration-300 shadow-sm hover:shadow-md"
       >
-        <!-- Exercise header -->
+        <!-- 운동 헤더 -->
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-xl font-bold text-soft-black">{{ exercise.name }}</h3>
           <button 
@@ -88,7 +88,7 @@ const toggleSetCompletion = (exerciseIndex, setIndex) => {
           </button>
         </div>
 
-        <!-- Sets table -->
+        <!-- 세트 테이블 -->
         <div class="space-y-2">
           <div
             v-for="(set, setIndex) in exercise.sets"
@@ -132,7 +132,7 @@ const toggleSetCompletion = (exerciseIndex, setIndex) => {
       </div>
     </div>
 
-    <!-- Add Exercise Button -->
+    <!-- 운동 추가 버튼 -->
     <button
       @click="addExercise"
       class="w-full py-4 bg-gradient-to-r from-pastel-yellow to-pastel-red text-white font-bold rounded-xl hover:shadow-xl transform hover:scale-105 transition-all duration-300"
@@ -158,7 +158,7 @@ const toggleSetCompletion = (exerciseIndex, setIndex) => {
   }
 }
 
-/* Remove number input spinners */
+/* 숫자 입력 스피너 제거 */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;

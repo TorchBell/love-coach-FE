@@ -6,7 +6,7 @@ import { achievementApi } from '@/api/achievementApi'
  * 업적 상태 관리
  */
 export const useAchievementStore = defineStore('achievement', () => {
-    // State
+    // 상태
     const achievements = ref([])
     const isLoading = ref(false)
     const error = ref(null)

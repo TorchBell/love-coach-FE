@@ -4,15 +4,15 @@
       v-if="show"
       class="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
-      <!-- Backdrop -->
+      <!-- 배경 (Backdrop) -->
       <div 
         class="absolute inset-0 bg-black/60 backdrop-blur-sm"
         @click="handleCancel"
       ></div>
       
-      <!-- Modal Content -->
+      <!-- 모달 내용 -->
       <div class="relative bg-white rounded-3xl p-8 shadow-2xl max-w-md w-full z-10 animate-modal-in">
-        <!-- Crying Character Image -->
+        <!-- 우는 캐릭터 이미지 -->
         <div class="flex justify-center mb-6">
           <div class="w-40 h-40 rounded-full overflow-hidden bg-cream border-4 border-pastel-red/30 shadow-lg">
             <img 
@@ -23,12 +23,12 @@
           </div>
         </div>
         
-        <!-- Warning Title -->
+        <!-- 경고 제목 -->
         <h2 class="text-2xl font-bold text-center text-gray-800 mb-3">
           정말로 떠나시는 건가요?
         </h2>
         
-        <!-- Warning Message -->
+        <!-- 경고 메시지 -->
         <div class="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
           <p class="text-sm text-red-700 text-center font-medium leading-relaxed">
             회원탈퇴 시 <strong>모든 기록</strong>이 삭제되며,<br />
@@ -37,7 +37,7 @@
           </p>
         </div>
         
-        <!-- Buttons -->
+        <!-- 버튼 -->
         <div class="flex gap-3">
           <button 
             @click="handleCancel"

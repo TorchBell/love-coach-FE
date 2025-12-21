@@ -1,10 +1,10 @@
 <script setup>
 import { ref } from 'vue'
 
-// Current date
+// 현재 날짜
 const currentDate = ref(new Date().toISOString().split('T')[0])
 
-// Meal type selector
+// 식사 유형 선택자
 const selectedMealType = ref('breakfast')
 const mealTypes = [
   { id: 'breakfast', name: 'Breakfast', icon: '🌅' },
@@ -13,11 +13,11 @@ const mealTypes = [
   { id: 'snack', name: 'Snacks', icon: '🍪' }
 ]
 
-// Daily totals (mock data)
+// 일일 합계 (더미 데이터)
 const dailyGoal = 2000
 const currentCalories = 1520
 
-// Food items (mock data)
+// 음식 목록 (더미 데이터)
 const foodItems = ref([
   { name: 'Rice Bowl', calories: 300, protein: 5, carbs: 65, fat: 2 },
   { name: 'Grilled Chicken', calories: 250, protein: 42, carbs: 0, fat: 8 },
@@ -32,7 +32,7 @@ const addFood = () => {
 
 <template>
   <div class="diet-log-tab">
-    <!-- Header with Date -->
+    <!-- 날짜 헤더 -->
     <div class="flex justify-between items-center mb-8">
       <h2 class="text-3xl font-bold text-soft-black">Diet Log</h2>
       <input 
@@ -42,7 +42,7 @@ const addFood = () => {
       />
     </div>
 
-    <!-- Daily Goal Progress -->
+    <!-- 일일 목표 진행 상황 -->
     <div class="bg-gradient-to-r from-pastel-red/10 to-pastel-yellow/10 rounded-2xl p-6 mb-8 border border-pastel-red/20">
       <div class="flex justify-between items-center mb-4">
         <div>
@@ -53,14 +53,14 @@ const addFood = () => {
           {{ Math.round((currentCalories / dailyGoal) * 100) }}%
         </div>
       </div>
-      <!-- Progress bar -->
+      <!-- 진행률 바 -->
       <div class="w-full bg-white/60 h-4 rounded-full overflow-hidden shadow-inner">
         <div 
           class="h-full bg-gradient-to-r from-pastel-red to-pastel-yellow rounded-full transition-all duration-700"
           :style="{ width: `${(currentCalories / dailyGoal) * 100}%` }"
         ></div>
       </div>
-      <!-- Macro breakdown -->
+      <!-- 영양소 상세 -->
       <div class="grid grid-cols-3 gap-4 mt-4">
         <div class="bg-white/80 rounded-xl p-3 text-center">
           <p class="text-xs text-gray-500 mb-1">Protein</p>
@@ -77,7 +77,7 @@ const addFood = () => {
       </div>
     </div>
 
-    <!-- Meal Type Selector -->
+    <!-- 식사 유형 선택자 -->
     <div class="flex gap-3 mb-6">
       <button
         v-for="meal in mealTypes"
@@ -93,7 +93,7 @@ const addFood = () => {
       </button>
     </div>
 
-    <!-- Food List -->
+    <!-- 음식 목록 -->
     <div class="space-y-3 mb-6">
       <div
         v-for="(food, index) in foodItems"
@@ -115,7 +115,7 @@ const addFood = () => {
       </div>
     </div>
 
-    <!-- Add Food Button -->
+    <!-- 음식 추가 버튼 -->
     <button
       @click="addFood"
       class="w-full py-4 bg-gradient-to-r from-pastel-red to-pastel-yellow text-white font-bold rounded-xl hover:shadow-xl transform hover:scale-105 transition-all duration-300"

@@ -46,12 +46,12 @@ const typeColor = computed(() => typeColors[props.itemType] || 'pastel-red')
         class="fixed inset-0 z-[100] flex items-center justify-center p-4"
         @click.self="$emit('cancel')"
       >
-        <!-- Backdrop -->
+        <!-- 배경 (Backdrop) -->
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
         
-        <!-- Modal Content -->
+        <!-- 모달 내용 -->
         <div class="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 transform transition-all">
-          <!-- Header with Icon -->
+          <!-- 아이콘이 있는 헤더 -->
           <div class="text-center mb-6">
             <div 
               class="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center text-4xl"
@@ -64,7 +64,7 @@ const typeColor = computed(() => typeColors[props.itemType] || 'pastel-red')
             <h3 class="text-2xl font-bold text-soft-black mb-2">삭제 확인</h3>
           </div>
           
-          <!-- Content -->
+          <!-- 내용 -->
           <div class="bg-gray-50 rounded-2xl p-5 mb-6 text-center">
             <p class="text-gray-500 text-sm mb-2">정말 다음 {{ typeLabel }}을 삭제하시겠습니까?</p>
             <p class="text-lg font-bold text-soft-black mb-1">{{ date }}</p>
@@ -76,13 +76,13 @@ const typeColor = computed(() => typeColors[props.itemType] || 'pastel-red')
             </p>
           </div>
           
-          <!-- Warning -->
+          <!-- 경고 -->
           <div class="bg-red-50 rounded-xl p-4 mb-6 flex items-center gap-3">
             <span class="text-2xl">⚠️</span>
             <p class="text-sm text-red-600">이 작업은 되돌릴 수 없습니다.</p>
           </div>
           
-          <!-- Buttons -->
+          <!-- 버튼 -->
           <div class="flex gap-3">
             <button 
               @click="$emit('cancel')"

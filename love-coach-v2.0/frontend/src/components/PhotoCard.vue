@@ -10,7 +10,7 @@ const props = defineProps({
 
 const cardRef = ref(null)
 
-// Enhanced motion with gentle hover effect
+// 부드러운 호버 효과가 적용된 향상된 모션
 const motionInstance = useMotion(cardRef, {
   initial: { scale: 1, y: 0 },
   hovered: { 
@@ -33,18 +33,18 @@ const motionInstance = useMotion(cardRef, {
     @mouseleave="motionInstance.apply('initial')"
     @click="$emit('click')"
   >
-    <!-- Image Container -->
+    <!-- 이미지 컨테이너 -->
     <div class="relative w-full h-[60%] rounded-xl overflow-hidden bg-cream/30 mb-1">
       <img 
         :src="image" 
         :alt="title" 
         class="w-full h-full object-cover"
       />
-      <!-- Subtle overlay on hover -->
+      <!-- 호버 시 미묘한 오버레이 -->
       <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
     </div>
 
-    <!-- Text Content -->
+    <!-- 텍스트 내용 -->
     <div class="text-center px-1 h-[35%] flex flex-col justify-center">
       <h3 class="font-bold text-soft-black text-sm mb-0.5 truncate">
         {{ title }}
@@ -54,7 +54,7 @@ const motionInstance = useMotion(cardRef, {
       </p>
     </div>
 
-    <!-- Bottom decorative line -->
+    <!-- 하단 장식 라인 -->
     <div class="h-[5%] flex items-center justify-center">
       <div class="w-8 h-0.5 bg-gradient-to-r from-pastel-red to-pastel-yellow rounded-full"></div>
     </div>
@@ -64,10 +64,10 @@ const motionInstance = useMotion(cardRef, {
 <style scoped>
 .photo-card {
   width: 100%;
-  /* Use flex-1 to automatically fill available space in the flex container */
+  /* flex-1을 사용하여 플렉스 컨테이너의 가용 공간을 자동으로 채움 */
   flex: 1;
   height: auto;
-  min-height: 0; /* Allow shrinking if needed */
+  min-height: 0; /* 필요시 줄어들도록 허용 */
 }
 
 .photo-card:active {

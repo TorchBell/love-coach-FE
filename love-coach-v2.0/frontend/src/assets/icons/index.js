@@ -1,19 +1,19 @@
-// Custom Icon Imports - Menu Icons Only
+// 커스텀 아이콘 임포트 - 메뉴 아이콘만
 import TomaGalleryIcon from './toma-gallery.png'
 import BelleLogIcon from './belle-log.png'
 import ChiiAchievementIcon from './chii-achievement.png'
 // import Logo from './logo.png'
 
 export const ICONS = {
-    // Menu Icons
+    // 메뉴 아이콘
     tomaGallery: TomaGalleryIcon,
     belleLog: BelleLogIcon,
     chiiAchievement: ChiiAchievementIcon,
-    // Logo
+    // 로고
     // logo: Logo,
 }
 
-// Helper function to get icon path
+// 아이콘 경로를 가져오는 헬퍼 함수
 export const getIcon = (name) => {
     return ICONS[name] || null
 }

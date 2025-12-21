@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/api/authApi'
 
 export const useAuthStore = defineStore('auth', () => {
-    // State
+    // 상태
     const user = ref(null)
     const isAuthenticated = computed(() => !!user.value)
     const isLoading = ref(false)
@@ -145,12 +145,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     return {
-        // State
+        // 상태
         user,
         isAuthenticated,
         isLoading,
         error,
-        // Actions
+        // 동작
         login,
         logout,
         signup,

@@ -30,7 +30,7 @@ const affinity = computed(() => {
   }
 })
 
-// Animation State
+// 애니메이션 상태
 const animatedStats = ref({
   diet: 0,
   strength: 0,
@@ -73,14 +73,14 @@ onMounted(async () => {
       cardio: 5
   }
 
-  // Animate Stats
+  // 통계 애니메이션
   setTimeout(() => {
       animateValue(animatedStats, 'diet', stats.diet)
       animateValue(animatedStats, 'strength', stats.strength)
       animateValue(animatedStats, 'cardio', stats.cardio)
   }, 100)
 
-  // Animate Affinity (데이터 로드 후)
+  // 호감도 애니메이션 (데이터 로드 후)
   setTimeout(() => {
     animateValue(animatedAffinity, 'toma', affinity.value.toma)
     animateValue(animatedAffinity, 'belle', affinity.value.belle)
@@ -116,15 +116,15 @@ const handleDeleteConfirm = async () => {
   <MainLayout>
     <div class="p-6 md:p-10 max-w-6xl mx-auto space-y-12 animate-fade-in-up">
       
-      <!-- Page Header -->
+      <!-- 페이지 헤더 -->
       <div class="text-center mb-8 animate-fade-in-up">
         <h1 class="text-4xl font-bold text-soft-black mb-2">마이페이지</h1>
         <p class="text-gray-500">나의 정보를 관리하고 활동을 확인하세요!</p>
       </div>
 
-      <!-- Header: Profile & Tokens -->
+      <!-- 헤더: 프로필 & 크레딧 -->
       <div class="flex flex-col lg:flex-row gap-8 items-center lg:items-start bg-white/60 backdrop-blur-md p-8 rounded-3xl shadow-lg border border-white/50">
-        <!-- Profile -->
+        <!-- 프로필 -->
         <div class="flex flex-col items-center gap-4">
           <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-pastel-red shadow-md bg-white">
             <img :src="CHAR_IMAGES.tomai" alt="Profile" class="w-full h-full object-cover" />
@@ -135,7 +135,7 @@ const handleDeleteConfirm = async () => {
           </div>
         </div>
 
-        <!-- Credit Display -->
+        <!-- 크레딧 표시 -->
         <div class="flex-1 w-full flex flex-col items-center justify-center mt-8 lg:mt-0">
           <div class="bg-white/80 p-6 rounded-2xl shadow-sm border border-pastel-red/10 flex flex-col items-center justify-center gap-2 hover:scale-105 transition-transform w-full max-w-xs">
             <span class="text-4xl">💎</span>
@@ -145,29 +145,29 @@ const handleDeleteConfirm = async () => {
         </div>
       </div>
 
-      <!-- Stats & Affinity Grid -->
+      <!-- 통계 & 호감도 그리드 -->
       <div class="grid lg:grid-cols-2 gap-8">
         
-        <!-- Activity Stats (Counters) -->
+        <!-- 활동 통계 (카운터) -->
         <div class="bg-white/60 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-lg border border-white/50 space-y-6">
           <h3 class="text-xl font-bold text-gray-700 flex items-center gap-2">
             <span>📊</span> 활동 요약
           </h3>
           
           <div class="flex flex-col gap-4 text-center">
-            <!-- Diet -->
+            <!-- 식단 -->
             <div class="bg-white/50 p-4 rounded-2xl border border-pastel-green/20 flex items-center justify-between px-6">
               <span class="text-sm font-bold text-gray-500">식단</span>
               <p class="text-2xl font-bold text-pastel-green">{{ animatedStats?.diet || 0 }}<span class="text-sm text-gray-400 ml-1">일</span></p>
             </div>
 
-            <!-- Strength -->
+            <!-- 근력 -->
             <div class="bg-white/50 p-4 rounded-2xl border border-pastel-blue/20 flex items-center justify-between px-6">
               <span class="text-sm font-bold text-gray-500">근력</span>
               <p class="text-2xl font-bold text-pastel-blue">{{ animatedStats?.strength || 0 }}<span class="text-sm text-gray-400 ml-1">일</span></p>
             </div>
 
-            <!-- Cardio -->
+            <!-- 유산소 -->
             <div class="bg-white/50 p-4 rounded-2xl border border-pastel-yellow/20 flex items-center justify-between px-6">
               <span class="text-sm font-bold text-gray-500">유산소</span>
               <p class="text-2xl font-bold text-pastel-yellow">{{ animatedStats?.cardio || 0 }}<span class="text-sm text-gray-400 ml-1">일</span></p>
@@ -175,14 +175,14 @@ const handleDeleteConfirm = async () => {
           </div>
         </div>
 
-        <!-- NPC Affinity -->
+        <!-- NPC 호감도 -->
         <div class="bg-white/60 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-lg border border-white/50 space-y-6">
           <h3 class="text-xl font-bold text-gray-700 flex items-center gap-2">
             <span>💖</span> 호감도
           </h3>
           
           <div class="space-y-4">
-            <!-- Toma -->
+            <!-- 토마 -->
             <div class="bg-white/50 p-4 rounded-2xl border border-pastel-red/20">
               <div class="flex items-center gap-4 mb-3">
                 <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-pastel-red/50">
@@ -200,7 +200,7 @@ const handleDeleteConfirm = async () => {
               </div>
             </div>
 
-            <!-- Belle -->
+            <!-- 벨 -->
             <div class="bg-white/50 p-4 rounded-2xl border border-pastel-blue/20">
               <div class="flex items-center gap-4 mb-3">
                 <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-pastel-blue/50">
@@ -218,7 +218,7 @@ const handleDeleteConfirm = async () => {
               </div>
             </div>
 
-            <!-- Chie -->
+            <!-- 치이 -->
             <div class="bg-white/50 p-4 rounded-2xl border border-pastel-yellow/20">
               <div class="flex items-center gap-4 mb-3">
                 <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-pastel-yellow/50">
@@ -241,7 +241,7 @@ const handleDeleteConfirm = async () => {
 
       </div>
 
-      <!-- User Management -->
+      <!-- 사용자 관리 -->
       <div class="flex justify-end gap-4 pt-8 border-t border-gray-200">
         <button 
           @click="handleEditProfile"
@@ -259,7 +259,7 @@ const handleDeleteConfirm = async () => {
 
     </div>
 
-    <!-- Delete Account Modal -->
+    <!-- 회원탈퇴 모달 -->
     <DeleteAccountModal 
       :show="showDeleteModal"
       @cancel="handleDeleteCancel"

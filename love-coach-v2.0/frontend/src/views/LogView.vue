@@ -8,7 +8,7 @@ import { useUiStore } from '@/stores/uiStore'
 import { useLogStore } from '@/stores/logStore'
 import { storeToRefs } from 'pinia'
 
-// Stamp Images
+// 스탬프 이미지
 import tomaStamp from '@/assets/stamp/toma.jpg'
 import belleStamp from '@/assets/stamp/belle.jpg'
 import chiiStamp from '@/assets/stamp/chii.jpg'
@@ -60,7 +60,7 @@ onMounted(async () => {
   await logStore.fetchMonthlyLogs()
 })
 
-// --- Calendar Logic ---
+// --- 캘린더 로직 ---
 const currentDate = ref(new Date())
 
 const daysInMonth = computed(() => {
@@ -111,7 +111,7 @@ const getDailyLogs = (day) => {
   return calendarLogStatus.value[dateStr] || []
 }
 
-// --- Form States ---
+// --- 폼 상태 ---
 const dietForm = ref({ foodId: '', quantity: 1 })
 const workoutForm = ref({ muscleExerciseId: '', weight: '', setCount: '', repsPerSet: '' })
 const runningForm = ref({ cardioExerciseId: '', durationMinutes: '', burnedKcal: '' })
@@ -136,17 +136,17 @@ const searchFood = async () => {
   }
 }
 
-// --- Editing State ---
+// --- 수정 상태 ---
 const editingId = ref(null)
 const editingType = ref(null) // 'diet', 'workout', 'running'
 const isEditing = ref(false)
 
-// Edit Forms (Separate from Add Forms)
+// 수정 폼 (등록 폼과 분리)
 const editDietForm = ref({ foodId: '', quantity: 1, foodName: '', calory: 0 })
 const editWorkoutForm = ref({ muscleExerciseId: '', weight: '', setCount: '', repsPerSet: '' })
 const editRunningForm = ref({ cardioExerciseId: '', durationMinutes: '', burnedKcal: '' })
 
-// Edit Food Search (Separate from Add)
+// 수정용 음식 검색 (등록과 분리)
 const editFoodSearchQuery = ref('')
 const editFoodSearchResults = ref([])
 const editSelectedFood = ref(null)
@@ -175,7 +175,7 @@ const selectEditFood = (food) => {
   editFoodSearchResults.value = []
 }
 
-// Restore selectFood (Missing Function)
+// selectFood 복구 (누락된 함수)
 const selectFood = (food) => {
   selectedFood.value = food
   dietForm.value.foodId = food.foodId
@@ -227,7 +227,7 @@ const cancelEdit = () => {
   editSelectedFood.value = null
 }
 
-// --- Delete Confirm Modal State ---
+// --- 삭제 확인 모달 상태 ---
 const showDeleteModal = ref(false)
 const deleteTarget = ref({ type: '', id: null, name: '', date: '' })
 
@@ -269,7 +269,7 @@ const cancelDeleteModal = () => {
   deleteTarget.value = { type: '', id: null, name: '', date: '' }
 }
 
-// Add Functions (Pure Add)
+// 등록 함수
 const addDietLog = async () => {
   if (!dietForm.value.foodId) {
     logStore.error = '음식 검색 후 목록에서 선택해주세요.'
@@ -318,7 +318,7 @@ const addRunningLog = async () => {
   }
 }
 
-// Update Functions (Use Edit Forms)
+// 업데이트 함수 (수정 폼 사용)
 const handleUpdateDiet = async () => {
   const success = await logStore.updateDietLog(editingId.value, {
       foodId: String(editDietForm.value.foodId),
@@ -350,13 +350,13 @@ const handleUpdateRunning = async () => {
 <template>
   <MainLayout>
     <template #default>
-      <!-- Page Header -->
+      <!-- 페이지 헤더 -->
       <div class="text-center mb-8">
         <h1 class="text-4xl font-bold text-soft-black mb-2">활동 기록</h1>
         <p class="text-gray-500">오늘의 노력을 기록해보세요!</p>
       </div>
 
-      <!-- Character Tabs -->
+      <!-- 캐릭터 탭 -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
         <div
           v-for="tab in tabs"
@@ -367,7 +367,7 @@ const handleUpdateRunning = async () => {
           role="button"
           tabindex="0"
         >
-          <!-- Badge (Name Tag outside) -->
+          <!-- 배지 (이름표 외부) -->
           <div 
             class="px-4 py-1.5 md:px-8 md:py-2 rounded-full border-2 bg-white shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-1 whitespace-nowrap"
             :class="[tab.border, activeTab === tab.id ? 'ring-2 ring-offset-2 ' + tab.border.replace('border-', 'ring-') : '']"
@@ -375,7 +375,7 @@ const handleUpdateRunning = async () => {
             <span class="text-sm md:text-xl font-bold tracking-widest transition-all duration-300" :class="tab.color">{{ tab.name }}</span>
           </div>
 
-          <!-- Image Container -->
+          <!-- 이미지 컨테이너 -->
           <div 
             class="relative w-full max-w-[200px] sm:max-w-none aspect-[4/3] rounded-3xl overflow-hidden shadow-md transition-all duration-300 border-4"
             :class="activeTab === tab.id ? tab.border + ' shadow-xl scale-105' : 'border-transparent grayscale hover:grayscale-0 hover:shadow-lg'"
@@ -385,9 +385,9 @@ const handleUpdateRunning = async () => {
         </div>
       </div>
 
-      <!-- Dashboard & Calendar Section -->
+      <!-- 대시보드 및 캘린더 섹션 -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Calendar Card (Expanded to col-span-2) -->
+        <!-- 캘린더 카드 (col-span-2로 확장) -->
         <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 lg:col-span-2">
           <h3 class="text-lg font-bold text-soft-black mb-4 text-center flex items-center justify-center gap-2">
             <span>📅</span> {{ currentDate.getMonth() + 1 }}월
@@ -405,7 +405,7 @@ const handleUpdateRunning = async () => {
               @click="selectDate(day)"
             >
               <span :class="{'text-gray-300': !day}" class="z-10 relative">{{ day }}</span>
-              <!-- Indicators (Stamps) -->
+              <!-- 표시자 (스탬프) -->
               <div v-if="day" class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-80">
                 <div class="relative w-full h-full p-0.5 overflow-hidden">
                    <img v-if="getDailyLogs(day).includes('diet')" :src="tomaStamp" class="absolute top-0 right-0 w-8 h-8 rounded-full border-2 border-white shadow-md object-cover transform rotate-12 z-20" alt="stamp" />
@@ -417,7 +417,7 @@ const handleUpdateRunning = async () => {
           </div>
         </div>
 
-        <!-- Dashboard Card (Compact to col-span-1) -->
+        <!-- 대시보드 카드 (col-span-1로 축소) -->
         <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 lg:col-span-1 flex flex-col justify-center">
           <h3 class="text-xl font-bold text-soft-black mb-6 text-center">이번 달 요약</h3>
           <div class="space-y-4">
@@ -437,15 +437,15 @@ const handleUpdateRunning = async () => {
         </div>
       </div>
 
-      <!-- Content Area -->
+      <!-- 콘텐츠 영역 -->
       <div class="bg-white rounded-3xl p-6 shadow-sm min-h-[400px]">
         <div class="mb-6 pb-4 border-b border-gray-100 flex justify-between items-center">
           <h2 class="text-2xl font-bold text-soft-black">{{ formattedSelectedDate }} 기록</h2>
         </div>
         
-        <!-- Diet Tab -->
+        <!-- 식단 탭 -->
         <div v-if="activeTab === 'diet'" class="animate-fade-in space-y-8">
-          <!-- Add Form (Always Visible) -->
+          <!-- 등록 폼 (항상 표시) -->
           <div class="bg-cream/50 p-6 rounded-2xl border border-pastel-red/20">
             <h3 class="text-xl font-bold text-pastel-red mb-4 flex items-center gap-2">
               <span>✏️</span> 식단 기록하기
@@ -483,7 +483,7 @@ const handleUpdateRunning = async () => {
             </div>
           </div>
 
-          <!-- Log List -->
+          <!-- 기록 목록 -->
           <div class="space-y-4">
             <div v-if="filteredDietLogs.length === 0" class="text-center py-10 text-gray-400">
               <p class="mb-2">🍽️</p>
@@ -511,9 +511,9 @@ const handleUpdateRunning = async () => {
           </div>
         </div>
 
-        <!-- Workout Tab -->
+        <!-- 운동 탭 -->
         <div v-if="activeTab === 'workout'" class="animate-fade-in space-y-8">
-          <!-- Add Form -->
+          <!-- 등록 폼 -->
           <div class="bg-cream/50 p-6 rounded-2xl border border-pastel-yellow/20">
             <h3 class="text-xl font-bold text-pastel-yellow mb-4 flex items-center gap-2">
               <span>💪</span> 근력 기록하기
@@ -536,7 +536,7 @@ const handleUpdateRunning = async () => {
             </button>
           </div>
 
-          <!-- Log List -->
+          <!-- 기록 목록 -->
           <div class="space-y-4">
             <div v-if="filteredWorkoutLogs.length === 0" class="text-center py-10 text-gray-400">
               <p class="mb-2">💪</p>
@@ -572,9 +572,9 @@ const handleUpdateRunning = async () => {
           </div>
         </div>
 
-        <!-- Running Tab -->
+        <!-- 러닝 탭 -->
         <div v-if="activeTab === 'running'" class="animate-fade-in space-y-8">
-          <!-- Add Form -->
+          <!-- 등록 폼 -->
           <div class="bg-cream/50 p-6 rounded-2xl border border-pastel-blue/20">
             <h3 class="text-xl font-bold text-pastel-blue mb-4 flex items-center gap-2">
               <span>🏃</span> 유산소 기록하기
@@ -594,7 +594,7 @@ const handleUpdateRunning = async () => {
             </button>
           </div>
 
-          <!-- Log List -->
+          <!-- 기록 목록 -->
           <div class="space-y-4">
             <div v-if="filteredRunningLogs.length === 0" class="text-center py-10 text-gray-400">
               <p class="mb-2">👟</p>
@@ -628,7 +628,7 @@ const handleUpdateRunning = async () => {
 
       </div>
       
-      <!-- Bottom Edit Panel -->
+      <!-- 하단 수정 패널 -->
       <div 
         v-if="isEditing" 
         class="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] rounded-t-3xl z-50 transform transition-transform duration-300"
@@ -639,9 +639,9 @@ const handleUpdateRunning = async () => {
                 <button @click="cancelEdit" class="text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
             </div>
 
-            <!-- Diet Edit Form (with Food Search) -->
+            <!-- 식단 수정 폼 (음식 검색 포함) -->
              <div v-if="editingType === 'diet'" class="space-y-4">
-                <!-- Editable Food Search -->
+                <!-- 수정 가능한 음식 검색 -->
                 <div class="relative">
                     <label class="block text-sm font-bold text-gray-500 mb-2">음식 변경 (검색)</label>
                     <input 
@@ -650,7 +650,7 @@ const handleUpdateRunning = async () => {
                       placeholder="다른 음식으로 변경하려면 검색하세요" 
                       class="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:border-pastel-red" 
                     />
-                    <!-- Search Results Dropdown -->
+                    <!-- 검색 결과 드롭다운 -->
                     <div v-if="editFoodSearchResults.length > 0" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                       <div 
                         v-for="food in editFoodSearchResults" 
@@ -664,7 +664,7 @@ const handleUpdateRunning = async () => {
                     </div>
                 </div>
                 
-                <!-- Selected/Current Food Display -->
+                <!-- 선택된/현재 음식 표시 -->
                 <div class="p-4 bg-pastel-red/10 rounded-xl">
                     <p class="text-gray-500 text-sm mb-1">현재 선택된 음식</p>
                     <p class="text-xl font-bold text-pastel-red">{{ editDietForm.foodName }}</p>
@@ -680,7 +680,7 @@ const handleUpdateRunning = async () => {
                 </button>
              </div>
 
-             <!-- Workout Edit Form -->
+             <!-- 운동 수정 폼 -->
              <div v-if="editingType === 'workout'" class="space-y-4">
                  <div class="grid grid-cols-3 gap-4">
                     <div>
@@ -701,7 +701,7 @@ const handleUpdateRunning = async () => {
                  </button>
              </div>
 
-             <!-- Running Edit Form -->
+             <!-- 러닝 수정 폼 -->
              <div v-if="editingType === 'running'" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -720,7 +720,7 @@ const handleUpdateRunning = async () => {
         </div>
       </div>
 
-      <!-- Delete Confirm Modal -->
+      <!-- 삭제 확인 모달 -->
       <DeleteConfirmModal
         :visible="showDeleteModal"
         :date="deleteTarget.date"

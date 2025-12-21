@@ -6,7 +6,7 @@ import { npcApi } from '@/api/npcApi'
  * NPC 및 대화 상태 관리
  */
 export const useNpcStore = defineStore('npc', () => {
-    // State
+    // 상태
     const npcs = ref([])
     const chatLogs = ref([])
     const isLoading = ref(false)

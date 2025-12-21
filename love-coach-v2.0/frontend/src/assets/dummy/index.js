@@ -10,7 +10,7 @@ import logToma from '@/assets/logpage/toma.jpg'
 import logBelle from '@/assets/logpage/belle.jpg'
 import logChii from '@/assets/logpage/chii.jpg'
 
-// TODO: Replace these with actual user images in the future
+// TODO: 추후 실제 사용자 이미지로 교체 필요
 export const CHAR_IMAGES = {
     toma,
     belle,

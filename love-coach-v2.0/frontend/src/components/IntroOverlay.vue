@@ -20,7 +20,7 @@ const showNextButton = ref(false)
 const dialogues = {
   1: "어서오세요! 오랜만이에요!! 또 볼 수 있었으면 좋겠다 생각했는데...",
   2: "오늘은 무엇을 하러 오셨나요?",
-  3: "" // Choices step
+  3: "" // 선택지 단계
 }
 
 const typeText = async (text) => {
@@ -71,7 +71,7 @@ onMounted(() => {
     :leave="{ opacity: 0 }"
   >
     <div class="bg-white border-4 border-dark p-8 max-w-2xl w-full mx-4 shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] relative">
-      <!-- Character Placeholder (Toma) -->
+      <!-- 캐릭터 플레이스홀더 (토마) -->
       <div class="absolute -top-24 right-8 w-32 h-32 animate-bounce">
         <img :src="CHAR_IMAGES.toma" alt="Toma" class="w-full h-full object-contain pixelated" />
       </div>
@@ -79,11 +79,11 @@ onMounted(() => {
       <h2 class="font-pixel text-2xl mb-4 text-vivid-red">Toma</h2>
       
       <div class="bg-white/90 backdrop-blur-sm border-2 border-dark p-4 mb-8 min-h-[100px] rounded-lg shadow-sm relative">
-        <!-- Show last question if choices are active -->
+        <!-- 선택지가 활성화된 경우 마지막 질문 표시 -->
         <p v-if="showChoices" class="font-pixel text-soft-black leading-relaxed text-lg font-medium">{{ dialogues[2] }}</p>
         <p v-else class="font-pixel text-soft-black leading-relaxed text-lg font-medium">{{ displayedText }}<span class="animate-pulse" v-if="!showNextButton">_</span></p>
         
-        <!-- Manual Next Button -->
+        <!-- 수동 '다음' 버튼 -->
         <button 
           v-if="showNextButton"
           @click="nextStep"

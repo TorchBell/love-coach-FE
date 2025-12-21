@@ -60,16 +60,16 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore()
 
-    // Check if the route requires authentication
+    // 라우트가 인증을 필요로 하는지 확인
     if (to.meta.requiresAuth) {
-        // If user data is not loaded yet (e.g., page refresh), try to fetch session
+        // 사용자 데이터가 로드되지 않은 경우 (예: 페이지 새로고침), 세션 조회를 시도
         if (!authStore.user) {
             await authStore.fetchUserProfile()
         }
 
-        // After fetching, check authentication again
+        // 조회 후 다시 인증 상태 확인
         if (!authStore.isAuthenticated) {
-            // Only redirect and alert if actually not authenticated
+            // 실제로 인증되지 않은 경우에만 리다이렉트 및 알림
             alert('로그인이 필요한 서비스입니다.')
             next('/home')
             return
