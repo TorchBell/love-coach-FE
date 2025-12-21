@@ -1,0 +1,213 @@
+// 1. 사용자 (Users)
+Table users {
+user_id bigint [pk, increment, note: '사용자 ID']
+email varchar(100) [not null, note: '이메일 (로그인 ID)']
+password varchar(255) [not null, note: '비밀번호 (Encrypted)']
+nickname varchar(50) [not null, note: '닉네임']
+gender char(1) [note: '성별 (M/F)']
+birth_date date [note: '생년월일']
+height decimal(5,2) [note: '키 (cm)']
+goal_weight decimal(5,2) [note: '목표 체중 (kg)']
+created_at datetime [default: 'now()', note: '가입일 (BaseEntity)']
+modified_at datetime [default: 'now()', note: '수정 일시 (BaseEntity)']
+
+Note: '사용자 정보 관리'
+}
+
+// 2. 미소녀 NPC (Character) - 메타데이터만 남김
+Table npc {
+npc_id bigint [pk, increment, note: 'NPC ID']
+name varchar(50) [not null, note: '캐릭터 이름']
+personality text [note: '성격 프롬프트 (AI 설정용)']
+created_at datetime [default: 'now()', note: '생성 일시']
+modified_at datetime [default: 'now()', note: '수정 일시']
+
+Note: '미소녀 캐릭터 고정 정보 (메타데이터)'
+}
+
+// 3. 유저별 NPC 상태 (User_NPC_Status) - N:M 해소
+Table user_npc_status {
+uns_id bigint [pk, increment, note: '상태 ID']
+user_id bigint [not null, note: '사용자 ID']
+npc_id bigint [not null, note: 'NPC ID']
+affection_score int [default: 0, note: '현재 호감도']
+current_state varchar(20) [default: 'NORMAL', note: '현재 상태 (NORMAL, ANGRY, HAPPY)']
+last_interaction_at datetime [default: 'now()', note: '마지막 상호작용 시간']
+created_at datetime [default: 'now()', note: '생성 일시']
+modified_at datetime [default: 'now()', note: '수정 일시']
+
+Note: '유저별 NPC 호감도 및 상태 관리'
+}
+
+// 4. 식품 정보 (Food)
+Table food {
+food_code varchar(20) [pk, note: '식품코드']
+food_name varchar(200) [not null, note: '식품명']
+// 불필요 컬럼(대분류, 대표식품코드 등) 5개 삭제됨
+energy_kcal decimal(10,2) [note: '에너지(kcal/100g)']
+water_g decimal(10,2) [note: '수분(g/100g)']
+protein_g decimal(10,2) [note: '단백질(g/100g)']
+fat_g decimal(10,2) [note: '지방(g/100g)']
+carb_g decimal(10,2) [note: '탄수화물(g/100g)']
+sugar_g decimal(10,2) [note: '당류(g/100g)']
+food_weight decimal(10,2) [note: '식품중량 (단위 제외 숫자)']
+
+Note: '공공데이터 포털 식품영양성분 DB (경량화)'
+}
+
+// 5. 식단 기록 (Menu)
+Table menu {
+menu_id bigint [pk, increment, note: '식단 ID']
+user_id bigint [not null, note: '사용자 ID']
+meal_type varchar(20) [not null, note: '식사 구분 (BREAKFAST, LUNCH, DINNER, SNACK)']
+meal_date date [not null, note: '식사 날짜']
+total_kcal decimal(10,2) [default: 0, note: '총 칼로리']
+img_url varchar(255) [note: '식단 인증샷 URL']
+created_at datetime [default: 'now()', note: '기록 생성 일시 (BaseEntity)']
+modified_at datetime [default: 'now()', note: '기록 수정 일시 (BaseEntity)']
+
+Note: '사용자 끼니별 식단 기록'
+}
+
+// 6. 식단 상세 (Menu_Food)
+Table menu_food {
+menu_food_id bigint [pk, increment, note: '식단상세 ID']
+menu_id bigint [not null, note: '식단 ID']
+food_code varchar(20) [not null, note: '식품코드']
+quantity decimal(5,2) [default: 1.0, note: '섭취량 (인분/비율)']
+
+Note: '끼니에 포함된 개별 음식 매핑 (N:N 해소)'
+}
+
+// 7. 운동 종목 (Exercise)
+Table exercise {
+exercise_id bigint [pk, increment, note: '운동 ID']
+name varchar(100) [not null, note: '운동명']
+part varchar(50) [note: '운동 부위 (등, 가슴, 하체)']
+met_value decimal(5,2) [note: 'MET 계수']
+
+Note: '운동 종류 메타데이터'
+}
+
+// 8. 운동 기록 (Workout_Log)
+Table workout_log {
+log_id bigint [pk, increment, note: '운동기록 ID']
+user_id bigint [not null, note: '사용자 ID']
+exercise_id bigint [not null, note: '운동 ID']
+workout_date date [not null, note: '운동 날짜']
+total_minutes int [note: '운동 시간(분)']
+burned_kcal decimal(10,2) [note: '소모 칼로리']
+created_at datetime [default: 'now()', note: '기록 생성 일시 (BaseEntity)']
+modified_at datetime [default: 'now()', note: '기록 수정 일시 (BaseEntity)']
+
+Note: '사용자 운동 수행 로그'
+}
+
+// 9. 운동 세트 상세 (Workout_Set)
+Table workout_set {
+set_id bigint [pk, increment, note: '세트 ID']
+log_id bigint [not null, note: '운동기록 ID']
+set_seq int [not null, note: '세트 순서']
+weight decimal(5,2) [note: '무게 (kg)']
+reps int [note: '반복 횟수']
+
+Note: '운동별 세트 상세 정보'
+}
+
+// 10. 신체 기록 (Body_Log)
+Table body_log {
+body_log_id bigint [pk, increment, note: '신체기록 ID']
+user_id bigint [not null, note: '사용자 ID']
+record_date date [not null, note: '측정 날짜']
+weight decimal(5,2) [not null, note: '체중 (kg)']
+muscle_mass decimal(5,2) [note: '골격근량 (kg)']
+body_fat decimal(5,2) [note: '체지방률 (%)']
+created_at datetime [default: 'now()', note: '기록 생성 일시 (BaseEntity)']
+modified_at datetime [default: 'now()', note: '기록 수정 일시 (BaseEntity)']
+
+Note: '체중 및 신체 변화 그래프용 로그'
+}
+
+// 11. 업적 (Achievement)
+Table achievement {
+achievement_id bigint [pk, increment, note: '업적 ID']
+title varchar(100) [not null, note: '업적 제목']
+description text [note: '달성 조건 설명']
+icon_url varchar(255) [note: '업적 아이콘']
+reward_exp int [default: 0, note: '보상 경험치']
+
+Note: '업적/도전과제 메타데이터'
+}
+
+// 12. 유저 업적 (User_Achievement)
+Table user_achievement {
+ua_id bigint [pk, increment, note: '유저업적 ID']
+user_id bigint [not null, note: '사용자 ID']
+achievement_id bigint [not null, note: '업적 ID']
+achieved_at datetime [default: 'now()', note: '달성 일시 (BaseEntity)']
+
+Note: '사용자 달성 업적 매핑'
+}
+
+// 13. 갤러리/일러스트 (Gallery)
+Table gallery {
+gallery_id bigint [pk, increment, note: '갤러리 ID']
+title varchar(100) [not null, note: '일러스트 제목']
+image_path varchar(255) [not null, note: '이미지 파일 경로']
+unlock_condition varchar(255) [note: '해금 조건 텍스트']
+
+Note: '이벤트 CG 일러스트 메타데이터'
+}
+
+// 14. 유저 갤러리 (User_Gallery)
+Table user_gallery {
+ug_id bigint [pk, increment, note: '유저갤러리 ID']
+user_id bigint [not null, note: '사용자 ID']
+gallery_id bigint [not null, note: '갤러리 ID']
+acquired_at datetime [default: 'now()', note: '획득 일시 (BaseEntity)']
+
+Note: '사용자 획득 일러스트 매핑'
+}
+
+// 15. 채팅 로그 (Chat_Log)
+Table chat_log {
+chat_id bigint [pk, increment, note: '채팅 ID']
+user_id bigint [not null, note: '사용자 ID']
+npc_id bigint [not null, note: 'NPC ID']
+message_user text [note: '사용자 메시지']
+message_ai text [note: 'AI 응답 메시지']
+sent_at datetime [default: 'now()', note: '전송 일시 (BaseEntity)']
+
+Note: 'AI와의 대화 히스토리'
+}
+
+// --- 관계 설정 (Relationships) ---
+
+// 유저-NPC 상태 관계
+Ref: user_npc_status.user_id > users.user_id [delete: cascade]
+Ref: user_npc_status.npc_id > npc.npc_id
+
+// 식단 관련 관계
+Ref: menu.user_id > users.user_id [delete: cascade]
+Ref: menu_food.menu_id > menu.menu_id [delete: cascade]
+Ref: menu_food.food_code > food.food_code
+
+// 운동 관련 관계
+Ref: workout_log.user_id > users.user_id [delete: cascade]
+Ref: workout_log.exercise_id > exercise.exercise_id
+Ref: workout_set.log_id > workout_log.log_id [delete: cascade]
+
+// 신체 기록 관계
+Ref: body_log.user_id > users.user_id [delete: cascade]
+
+// 업적 관련 관계
+Ref: user_achievement.user_id > users.user_id [delete: cascade]
+Ref: user_achievement.achievement_id > achievement.achievement_id
+
+// 갤러리 관련 관계
+Ref: user_gallery.user_id > users.user_id [delete: cascade]
+Ref: user_gallery.gallery_id > gallery.gallery_id
+
+// 채팅 관련 관계
+Ref: chat_log.user_id > users.user_id [delete: cascade]
+Ref: chat_log.npc_id > npc.npc_id
