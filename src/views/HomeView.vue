@@ -3,6 +3,7 @@ import { ref, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 import CharacterDialog from '../components/CharacterDialog.vue'
+import { useUiStore } from '@/stores/uiStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useNpcStore } from '@/stores/npcStore'
 import { ICONS } from '@/assets/icons/index.js'
@@ -10,6 +11,7 @@ import { ICONS } from '@/assets/icons/index.js'
 import { DIALOG_TEXT, DIALOG_CHOICES } from '@/constants/text.js'
 
 const router = useRouter()
+const uiStore = useUiStore()
 const authStore = useAuthStore()
 const npcStore = useNpcStore()
 const showDialog = ref(false)
@@ -99,6 +101,11 @@ const openDialog = () => {
   currentChoices.value = DIALOG_CHOICES // 네비게이션 단축키 유지
 }
 
+const openChatWindow = () => {
+  uiStore.openChat(1) // 토마 ID 1
+  showDialog.value = false // Close simple dialog if open
+}
+
 // 실제 대화 처리
 const handleSendMessage = async (message) => {
   // 낙관적 UI 업데이트 또는 응답 대기?
@@ -135,7 +142,9 @@ const handleChoice = (choiceId) => {
   <div class="home-container min-h-screen bg-gradient-to-br from-cream via-white to-pastel-pink/30 relative overflow-hidden flex flex-col md:flex-row">
     
     <!-- 왼쪽 섹션 (로그인/네비게이션) -->
-    <div class="w-full md:w-1/3 z-20 flex flex-col justify-center px-8 md:pl-16 space-y-8 min-h-[50vh] md:min-h-screen bg-white/30 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none">
+    <div 
+        class="w-full md:w-1/3 z-20 flex flex-col justify-center px-8 md:pl-16 space-y-8 min-h-[50vh] md:min-h-screen bg-white/30 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none transition-all duration-500"
+    >
       <h1 class="text-5xl md:text-6xl font-bold text-pastel-red font-pixel mb-8 md:mb-12 tracking-wider drop-shadow-sm text-center md:text-left">
         Love<br>Coach
       </h1>
@@ -230,21 +239,16 @@ const handleChoice = (choiceId) => {
         :src="currentTomaImage" 
         alt="Toma" 
         class="h-full md:h-[90vh] object-contain transform translate-y-4 transition-transform duration-700 hover:scale-105 filter drop-shadow-2xl opacity-80 md:opacity-100"
+        :class="{ 'opacity-100 scale-110 !translate-y-8': uiStore.isChatOpen && uiStore.currentNpcId === 1 }"
         @mouseover="handleMouseOver"
         @mouseout="handleMouseOut"
       />
 
-      <div 
-        v-if="!showDialog && dialogText"
-        class="absolute top-[25%] right-[15%] bg-white/95 backdrop-blur-sm p-8 rounded-3xl rounded-bl-none shadow-xl animate-float cursor-pointer hover:bg-pastel-pink/10 transition-all border-2 border-pastel-red/20 max-w-xs hidden md:block"
-        @click="openDialog"
-      >
-        <p class="text-2xl font-bold text-soft-black leading-relaxed">{{ dialogText }}</p>
-        <div class="absolute bottom-4 -left-3 w-6 h-6 bg-white/95 border-l-2 border-b-2 border-pastel-red/20 transform rotate-45"></div>
-      </div>
+
       
+      <!-- 대화하기 버튼 -->
       <button 
-        v-if="authStore.isAuthenticated"
+        v-if="authStore.isAuthenticated && !uiStore.isChatOpen"
         @click="openDialog"
         class="absolute bottom-16 right-16 bg-gradient-to-r from-pastel-red to-pink-400 text-white px-10 py-5 rounded-full shadow-2xl hover:shadow-pastel-red/50 transition-all transform hover:scale-110 font-bold text-xl z-30 flex items-center gap-3 border-4 border-white/50 hidden md:flex"
       >
@@ -253,15 +257,18 @@ const handleChoice = (choiceId) => {
       </button>
     </div>
 
+    <!-- 기존 Simple Dialog -->
     <CharacterDialog 
-      :visible="showDialog" 
+      :visible="showDialog && !uiStore.isChatOpen" 
       :text="dialogText" 
       :character-image="CHAR_IMAGES.tomai"
       :choices="currentChoices"
-      :enable-input="true"
+      :show-direct-chat-button="true"
       @select="handleChoice"
-      @send="handleSendMessage"
+      @openChat="openChatWindow"
     />
+    
+
     
     <div class="absolute top-10 right-10 w-64 h-64 bg-pastel-yellow/10 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
     <div class="absolute bottom-10 left-10 w-80 h-80 bg-pastel-blue/10 rounded-full blur-3xl animate-pulse pointer-events-none" style="animation-delay: 1.5s;"></div>

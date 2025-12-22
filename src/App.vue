@@ -1,14 +1,17 @@
 <script setup>
 import CharacterDialog from './components/CharacterDialog.vue'
+import ChatWindow from '@/components/ChatWindow.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useUiStore } from '@/stores/uiStore'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 
 const mainCharacterBelle = CHAR_IMAGES?.belle || ''
 
 const route = useRoute()
 const authStore = useAuthStore()
+const uiStore = useUiStore()
 const showDialog = ref(false)
 
 // 앱 로드 시 세션 복구
@@ -40,4 +43,12 @@ defineExpose({ handleScroll })
 
   <!-- 라우터 뷰 -->
   <router-view @scroll="handleScroll" />
+
+  <!-- 전역 채팅 창 (랜딩, 회원가입 페이지 제외) -->
+  <ChatWindow 
+    v-if="!['landing', 'signup'].includes(route.name)"
+    :visible="uiStore.isChatOpen"
+    :npc-id="uiStore.currentNpcId"
+    @close="uiStore.closeChat()"
+  />
 </template>

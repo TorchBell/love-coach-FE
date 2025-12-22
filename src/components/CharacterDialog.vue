@@ -10,10 +10,11 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  enableInput: Boolean
+  enableInput: Boolean, // Will be used to show/hide "직접 대화" button instead of input
+  showDirectChatButton: Boolean // New prop for showing direct chat button
 })
 
-const emit = defineEmits(['select', 'send'])
+const emit = defineEmits(['select', 'send', 'openChat'])
 
 const inputValue = ref('')
 
@@ -49,29 +50,22 @@ const dialogRef = ref(null)
       </button>
     </div>
 
-    <!-- 채팅 입력 -->
-    <div v-if="enableInput" class="w-full max-w-xl mb-4 flex gap-2">
-      <input 
-        v-model="inputValue"
-        @keyup.enter="handleSend"
-        type="text" 
-        placeholder="대화를 입력하세요..."
-        class="flex-1 px-6 py-4 rounded-2xl border-2 border-pastel-red/30 focus:border-pastel-red shadow-lg bg-white/90 backdrop-blur-sm focus:outline-none transition-all"
-      />
-      <button 
-        @click="handleSend"
-        class="bg-pastel-red text-white px-6 rounded-2xl font-bold shadow-lg hover:bg-pastel-red/90 transition-all hover:scale-105"
-      >
-        전송
-      </button>
-    </div>
-
     <div class="flex items-end gap-4 w-full justify-end">
       <!-- 텍스트 버블 (향상된 비주얼 노벨 스타일) -->
-      <div class="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border-4 border-pastel-blue/40 relative mb-4 flex-1 max-w-xl">
-        <p class="text-soft-black font-medium leading-relaxed text-xl">{{ text }}</p>
+      <div class="bg-white/95 backdrop-blur-md p-6 pb-8 rounded-3xl shadow-2xl border-4 border-pastel-blue/40 relative mb-4 flex-1 max-w-xl">
+        <p class="text-soft-black font-medium leading-relaxed text-xl pr-16">{{ text }}</p>
         <!-- 삼각형 포인터 -->
         <div class="absolute -bottom-3 right-12 w-6 h-6 bg-white border-r-4 border-b-4 border-pastel-blue/40 transform rotate-45"></div>
+        
+        <!-- 직접 대화 버튼 (말풍선 안 오른쪽 아래) -->
+        <button 
+          v-if="showDirectChatButton"
+          @click="$emit('openChat')"
+          class="absolute bottom-2 right-4 text-sm text-pastel-red/80 hover:text-pastel-red font-bold hover:underline transition-colors flex items-center gap-1"
+        >
+          <span>💬</span>
+          <span>직접 대화</span>
+        </button>
       </div>
 
       <!-- 캐릭터 초상화 (크게) -->

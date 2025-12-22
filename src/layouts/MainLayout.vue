@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
@@ -17,6 +17,14 @@ const authStore = useAuthStore()
 const handleLogout = async () => {
   await authStore.logout()
   router.push('/home')
+}
+
+// AI 캐릭터에 따른 ID 매핑
+const getNpcId = (char) => {
+  if (char === 'toma') return 1
+  if (char === 'belle') return 2
+  if (char === 'chie') return 3 // 치에/치이
+  return 1
 }
 
 // AI 어시스턴트 로직
@@ -37,11 +45,24 @@ const getAiImage = (char) => {
   return tomaIcon
 }
 
+// 탭/페이지 변경 시 열려있는 채팅창 동기화
+watch(aiCharacter, (newChar) => {
+    if (uiStore.isChatOpen) {
+        const npcId = getNpcId(newChar)
+        uiStore.openChat(npcId)
+    }
+})
+
+const handleFabClick = () => {
+    const npcId = getNpcId(aiCharacter.value)
+    uiStore.openChat(npcId)
+}
+
 </script>
 
 <template>
   <div class="min-h-screen bg-cream font-sans overflow-hidden selection:bg-pastel-red selection:text-white">
-    <!-- 상단 네비게이션 (고정) -->
+    <!-- ... (상단 네비게이션, 메인 콘텐츠 생략) ... -->
     <nav class="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md shadow-sm z-50 flex items-center justify-between px-6 border-b border-pastel-red/10">
       <router-link to="/home" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
         <span class="text-2xl">🥗</span>
@@ -85,25 +106,20 @@ const getAiImage = (char) => {
       </aside>
     </div>
 
-    <!-- AI 어시스턴트 FAB -->
+    <!-- AI 어시스턴트 FAB (로고 클릭 시 채팅 열기) -->
     <div class="fixed bottom-8 right-8 z-50">
       <button 
-        @click="uiStore.toggleAiChat"
+        @click="handleFabClick"
         class="w-16 h-16 rounded-full bg-white shadow-lg border-4 border-pastel-red overflow-hidden hover:scale-110 transition-transform duration-300"
+        title="대화하기"
       >
         <img :src="getAiImage(aiCharacter)" alt="AI Assistant" class="w-full h-full object-cover" />
       </button>
       
-      <!-- AI 채팅 말풍선 -->
-      <div v-if="uiStore.showAiChat" class="absolute bottom-20 right-0 w-64 bg-white rounded-2xl shadow-xl p-4 border-2 border-pastel-red animate-bounce-in">
-        <div class="text-sm font-bold text-pastel-red mb-1">
-          {{ aiCharacter === 'toma' ? '토마' : aiCharacter === 'belle' ? '벨' : '치에' }}
-        </div>
-        <p class="text-soft-black text-sm">
-          오늘도 열심히 운동하고 계신가요? 궁금한 점이 있다면 언제든 물어봐주세요!
-        </p>
-      </div>
+      <!-- 안내 말풍선 (채팅이 닫혀있고, 최초 진입 시 잠깐 보여줄 수 있음 - 여기서는 간단히 제거 혹은 유지) -->
+      <!-- 사용자가 '이걸 누르면 채팅창을 열게' 해달라고 했으므로 말풍선 로직은 단순화하거나 FAB hover 시 보여주는 툴팁으로 대체 가능하지만, 일단 FAB 클릭 연동이 핵심 -->
     </div>
+
   </div>
 </template>
 

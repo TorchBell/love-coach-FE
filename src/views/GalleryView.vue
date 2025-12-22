@@ -89,7 +89,7 @@ const startAutoDisplayTimer = () => {
     if (filteredImages.value.length > 0) {
       triggerImageTransition()
     }
-  }, 2000)
+  }, 800)
 }
 
 const clearAutoDisplayTimer = () => {
