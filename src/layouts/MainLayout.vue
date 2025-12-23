@@ -14,6 +14,17 @@ const router = useRouter()
 const uiStore = useUiStore()
 const authStore = useAuthStore()
 
+const props = defineProps({
+  isFullWidth: {
+    type: Boolean,
+    default: false
+  },
+  hideSidebar: {
+    type: Boolean,
+    default: false
+  }
+})
+
 const handleLogout = async () => {
   await authStore.logout()
   router.push('/home')
@@ -81,14 +92,24 @@ const handleFabClick = () => {
     <!-- 메인 콘텐츠 영역 -->
     <div class="pt-16 h-screen flex relative">
       <!-- 왼쪽 사이드바 (고정) -->
-      <aside class="hidden md:block w-1/4 h-full fixed left-0 top-16 bottom-0 overflow-hidden bg-white/50 border-r border-pastel-red/10 z-40">
+      <!-- 사이드바 (hideSidebar가 false일 때만 표시) -->
+      <aside 
+        v-if="!hideSidebar"
+        class="hidden md:block h-full fixed left-0 top-16 bottom-0 overflow-hidden bg-white/50 border-r border-pastel-red/10 z-40 transition-all duration-300"
+        :class="isFullWidth ? 'w-64' : 'w-1/4'"
+      >
         <div class="h-full p-2 flex flex-col gap-2">
           <slot name="left-sidebar"></slot>
         </div>
       </aside>
 
       <!-- 중앙 콘텐츠 (스크롤 가능) -->
-      <main class="w-full md:w-1/2 md:ml-[25%] h-full overflow-y-auto p-4 md:p-6 scrollbar-hide pb-24">
+      <main 
+        class="w-full h-full overflow-y-auto p-4 md:p-6 scrollbar-hide pb-24 transition-all duration-300 relative"
+        :class="[
+            hideSidebar ? 'w-full' : (isFullWidth ? 'md:w-[calc(100%-16rem)] md:ml-64' : 'md:w-1/2 md:ml-[25%]')
+        ]"
+      >
         <slot></slot>
         
         <!-- 푸터 -->
@@ -98,8 +119,11 @@ const handleFabClick = () => {
         </footer>
       </main>
 
-      <!-- 오른쪽 사이드바 (고정) -->
-      <aside class="hidden md:block w-1/4 h-full fixed right-0 top-16 bottom-0 overflow-hidden bg-white/50 border-l border-pastel-red/10 z-40">
+      <!-- 우측 사이드바 (고정) - isFullWidth 아닐 때만 표시 -->
+      <aside 
+        v-if="!isFullWidth"
+        class="hidden md:block w-1/4 h-full fixed right-0 top-16 bottom-0 overflow-hidden bg-white/50 border-l border-pastel-red/10 z-40"
+      >
         <div class="h-full p-2 flex flex-col gap-2">
           <slot name="right-sidebar"></slot>
         </div>
