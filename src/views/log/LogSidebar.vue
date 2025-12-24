@@ -1,11 +1,11 @@
 <template>
-  <div class="h-full flex flex-col overflow-hidden rounded-r-3xl border-r border-gray-100 shadow-xl bg-white select-none">
-    <!-- 세로 3등분 탭 -->
+  <div class="w-full h-full flex flex-row xl:flex-col overflow-hidden xl:rounded-r-3xl rounded-b-3xl xl:rounded-bl-none border-b xl:border-b-0 xl:border-r border-gray-100 shadow-xl bg-white select-none">
+    <!-- 세로/가로 등분 탭 -->
     <div 
       v-for="tab in tabs" 
       :key="tab.id"
       @click="emit('update:activeTab', tab.id)"
-      class="relative flex-1 group cursor-pointer overflow-hidden transition-all duration-500 ease-out border-b last:border-b-0"
+      class="relative flex-1 group cursor-pointer overflow-hidden transition-all duration-500 ease-out border-r last:border-r-0 xl:border-r-0 xl:border-b xl:last:border-b-0"
       :class="[
         activeTab === tab.id ? 'flex-[1.5]' : 'flex-1 hover:flex-[1.2]'
       ]"
@@ -17,15 +17,15 @@
         </div>
 
         <!-- 텍스트 컨텐츠 (중앙 정렬) -->
-        <div class="absolute inset-0 flex flex-col items-center justify-center text-center z-10 p-4 transition-all duration-300 transform"
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-center z-10 p-2 xl:p-4 transition-all duration-300 transform"
              :class="activeTab === tab.id ? 'scale-100 opacity-100' : 'scale-90 opacity-80 group-hover:scale-100 group-hover:opacity-100'"
         >
-            <h2 class="text-3xl font-black text-white tracking-widest drop-shadow-lg uppercase font-eng mb-1">{{ tab.name }}</h2>
-            <p class="text-xs text-white/90 font-light tracking-[0.2em] border-t border-white/50 pt-2 px-3">{{ tab.sub }}</p>
+            <h2 class="text-xl xl:text-3xl font-black text-white tracking-widest drop-shadow-lg uppercase font-eng mb-1">{{ tab.name }}</h2>
+            <p class="text-[10px] xl:text-xs text-white/90 font-light tracking-[0.2em] border-t border-white/50 pt-1 xl:pt-2 px-2 xl:px-3 hidden sm:block">{{ tab.sub }}</p>
         </div>
 
-        <!-- 활성 표시 바 (왼쪽) -->
-        <div class="absolute left-0 top-0 bottom-0 w-2 transition-all duration-300"
+        <!-- 활성 표시 바 (왼쪽/아래) -->
+        <div class="absolute left-0 bottom-0 right-0 h-1 xl:h-auto xl:top-0 xl:bottom-0 xl:w-2 xl:right-auto transition-all duration-300"
              :class="[activeTab === tab.id ? tab.bg : 'bg-transparent']"></div>
              
         <!-- 활성 표시 오버레이 (전체) -->

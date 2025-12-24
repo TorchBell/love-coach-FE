@@ -50,11 +50,23 @@ onMounted(async () => {
 
 // --- 기존 폼 상태 및 CRUD 로직 유지 ---
 const dietForm = ref({ foodId: '', quantity: 1 })
-const workoutForm = ref({ muscleExerciseId: '', weight: '', setCount: '', repsPerSet: '' })
+const workoutForm = ref({ muscleExerciseId: '', weight: '', setCount: '', repsPerSet: '', selectedPart: '' }) // selectedPart 추가
 const runningForm = ref({ cardioExerciseId: '', durationMinutes: '', burnedKcal: '' })
 const foodSearchQuery = ref('')
 const foodSearchResults = ref([])
 const selectedFood = ref(null)
+
+// --- 근력운동 다중 드롭다운 논리 ---
+const uniqueParts = computed(() => {
+    const parts = new Set(muscleExercises.value.map(ex => ex.part || '기타'))
+    return Array.from(parts).sort()
+})
+
+const filteredExercises = computed(() => {
+    if (!workoutForm.value.selectedPart) return []
+    return muscleExercises.value.filter(ex => (ex.part || '기타') === workoutForm.value.selectedPart)
+})
+// ------------------------------------
 
 const searchFood = async () => {
   if (foodSearchQuery.value.length < 2) {
@@ -102,7 +114,7 @@ const addWorkoutLog = async () => {
     repsPerSet: Number(workoutForm.value.repsPerSet) || 1,
     weight: Number(workoutForm.value.weight) || 0
   })
-  if (success) workoutForm.value = { muscleExerciseId: '', weight: '', setCount: '', repsPerSet: '' }
+  if (success) workoutForm.value = { muscleExerciseId: '', weight: '', setCount: '', repsPerSet: '', selectedPart: '' }
 }
 
 const addRunningLog = async () => {
@@ -136,11 +148,16 @@ const startEdit = (type, log) => {
         selectedFood.value = { foodId: log.foodId, foodName: log.foodName } // 임시 객체
     } else if (type === 'workout') {
         editTargetId.value = log.muscleLogId
+        
+        // 운동 데이터 찾아서 part 설정
+        const exercise = muscleExercises.value.find(e => e.muscleExerciseId === log.muscleExerciseId)
+        
         workoutForm.value = {
-            muscleExerciseId: log.muscleExerciseId, // 주의: API 응답 확인 필요
+            muscleExerciseId: log.muscleExerciseId,
             setCount: log.setCount,
             repsPerSet: log.repsPerSet,
-            weight: log.weight
+            weight: log.weight,
+            selectedPart: exercise ? (exercise.part || '기타') : '' // 부위 설정
         }
     } else if (type === 'running') {
         editTargetId.value = log.cardioLogId
@@ -162,7 +179,7 @@ const cancelEdit = () => {
 
 const resetForms = () => {
     dietForm.value = { foodId: '', quantity: 1 }
-    workoutForm.value = { muscleExerciseId: '', weight: '', setCount: '', repsPerSet: '' }
+    workoutForm.value = { muscleExerciseId: '', weight: '', setCount: '', repsPerSet: '', selectedPart: '' }
     runningForm.value = { cardioExerciseId: '', durationMinutes: '', burnedKcal: '' }
     foodSearchQuery.value = ''
     selectedFood.value = null
@@ -251,17 +268,12 @@ const cancelDeleteModal = () => {
     <!-- 메인 콘텐츠 영역 -->
     <div class="space-y-6 min-h-screen pb-32"> <!-- 하단 여백 추가 (오버레이 고려) -->
       
-      <!-- 모바일/태블릿용 상단 탭 메뉴 (xl 미만에서만 표시) -->
-      <div class="xl:hidden flex bg-white rounded-2xl shadow-sm border border-gray-100 p-2 gap-2 overflow-x-auto">
-          <button 
-            v-for="tab in [{id:'diet', name:'식단'}, {id:'workout', name:'근력'}, {id:'running', name:'유산소'}]" 
-            :key="tab.id"
-            @click="setActiveTab(tab.id)"
-            class="flex-1 py-3 px-4 rounded-xl font-bold transition-all whitespace-nowrap"
-            :class="activeTab === tab.id ? 'bg-pastel-red text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'"
-          >
-              {{ tab.name }}
-          </button>
+      <!-- 상단 배너형 탭 메뉴 (xl 미만에서 표시) -->
+      <div class="block xl:hidden h-40">
+        <LogSidebar 
+            :active-tab="activeTab" 
+            @update:activeTab="setActiveTab"
+        />
       </div>
 
       <!-- 상단 Grid: [좌: 입력+목록] [우: 달력] -->
@@ -302,12 +314,24 @@ const cancelDeleteModal = () => {
               <div v-if="selectedFood" class="text-xs text-pastel-red font-bold">선택: {{ selectedFood.foodName }}</div>
             </div>
 
-            <!-- 근력 입력 폼 -->
+            <!-- 근력 입력 폼 (다중 드롭다운) -->
             <div v-if="activeTab === 'workout'" class="space-y-3">
-               <select v-model="workoutForm.muscleExerciseId" class="w-full p-3 rounded-xl border border-gray-200">
-                  <option value="" disabled>운동 선택</option>
-                  <option v-for="ex in muscleExercises" :key="ex.muscleExerciseId" :value="ex.muscleExerciseId">[{{ex.part}}] {{ex.name}}</option>
+               <!-- 1. 운동 부위 선택 -->
+               <select v-model="workoutForm.selectedPart" class="w-full p-3 rounded-xl border border-gray-200">
+                  <option value="" disabled>운동 부위 선택</option>
+                  <option v-for="part in uniqueParts" :key="part" :value="part">{{ part }}</option>
                </select>
+
+               <!-- 2. 상세 운동 선택 -->
+               <select 
+                  v-model="workoutForm.muscleExerciseId" 
+                  class="w-full p-3 rounded-xl border border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                  :disabled="!workoutForm.selectedPart"
+               >
+                  <option value="" disabled>{{ workoutForm.selectedPart ? '상세 운동 선택' : '운동 부위를 먼저 선택하세요' }}</option>
+                  <option v-for="ex in filteredExercises" :key="ex.muscleExerciseId" :value="ex.muscleExerciseId">{{ ex.name }}</option>
+               </select>
+
                <div class="grid grid-cols-3 gap-2">
                   <input v-model="workoutForm.weight" placeholder="kg" type="number" class="p-3 rounded-xl border border-gray-200" />
                   <input v-model="workoutForm.setCount" placeholder="세트" type="number" class="p-3 rounded-xl border border-gray-200" />
@@ -425,7 +449,7 @@ const cancelDeleteModal = () => {
         <div class="w-full max-w-4xl bg-white rounded-t-3xl shadow-2xl p-8 transform transition-transform duration-300 animate-slide-up border-t-4 border-pastel-red">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-black text-soft-black flex items-center gap-2">
-                    <span class="text-3xl">✏️</span> 기록 수정하기
+                   기록 수정하기
                     <span class="text-sm font-normal text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{{ editTargetType === 'diet' ? '식단' : editTargetType === 'workout' ? '근력' : '유산소' }}</span>
                 </h2>
                 <button @click="cancelEdit" class="p-2 hover:bg-gray-100 rounded-full transition-colors">❌</button>

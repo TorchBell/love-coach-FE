@@ -7,11 +7,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        'pastel-red': '#F8A8A8',
-        'pastel-yellow': '#FFE08C',
-        'pastel-blue': '#A8D8F8',
-        'soft-black': '#4A4A4A',
-        'cream': '#FFFDD0', // Keeping cream as a potential background variant
+        // New Sophisticated Palette
+        'pastel-red': '#FF8A8A', // Slightly more vibrant/warm red for Toma
+        'pastel-yellow': '#FFD56B', // More golden/warm yellow for Chie
+        'pastel-blue': '#8AC6FF', // Clearer sky blue for Belle
+        'mint-bg': '#D2F9F2', // User requested base background
+        'soft-black': '#374151', // Cool gray-black (Gray 700)
+        'cream': '#FFFDF5', // Warmer cream
         'white': '#FFFFFF',
       },
       fontFamily: {

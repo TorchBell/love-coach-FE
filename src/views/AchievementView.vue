@@ -82,26 +82,52 @@ const findLocalImage = (dbPath) => {
   // 헬퍼: 백엔드 데이터를 UI 포맷으로 변환
   const mapToUiItem = (item) => {
       // 1. NPC ID 매핑 (1=토마, 2=벨, 3=치이)
-      const nid = getNpcId(item)
+      // 1-1. NPC ID 매핑 (1=토마, 2=벨, 3=치이)
+      let nid = getNpcId(item)
       let tabId = 'toma' // Default fallback
+
+      // 1-2. URL 기반 캐릭터 추론 (Backup Logic)
+      const dbUrl = (item.iconUrl || item.icon_url || '').toLowerCase()
+      if (!nid) {
+          if (dbUrl.includes('toma')) nid = 1
+          else if (dbUrl.includes('belle')) nid = 2
+          else if (dbUrl.includes('chie') || dbUrl.includes('chii')) nid = 3
+      }
+
+      // 1-3. Achievement Type 기반 캐릭터 추론 (Final Backup)
+      // 잠겨있는 업적의 경우 아이콘도, ID도 없을 수 있음 -> 타입으로 분류
+      const typeStr = (item.achievementType || item.achievement_type || '').toUpperCase()
+      if (!nid) {
+          if (typeStr.includes('DIET')) nid = 1
+          else if (typeStr.includes('WORKOUT') || typeStr.includes('MUSCLE')) nid = 2
+          else if (typeStr.includes('CARDIO') || typeStr.includes('RUN')) nid = 3
+      }
 
       if (nid === 1) tabId = 'toma'
       else if (nid === 2) tabId = 'belle'
       else if (nid === 3) tabId = 'chie'
       else {
-          console.warn('[Achievement] NPC ID Check Failed. Data:', item)
-          // 분류 실패시 기본값(토마) 유지하여 화면엔 뜨게 함
+          // ID도 없고 URL 매칭도 안되고 타입도 모르면...
+          if (dbUrl.includes('toma')) tabId = 'toma'
+          else if (dbUrl.includes('belle')) tabId = 'belle'
+          else if (dbUrl.includes('chie') || dbUrl.includes('chii')) tabId = 'chie'
+          else if (typeStr.includes('DIET')) tabId = 'toma'
+          else if (typeStr.includes('WORKOUT') || typeStr.includes('MUSCLE')) tabId = 'belle'
+          else if (typeStr.includes('CARDIO') || typeStr.includes('RUN')) tabId = 'chie'
+          else {
+               console.warn('[Achievement] NPC Classification Failed. Defaulting to Toma.', item)
+          }
       }
 
       // 2. 값 매핑 (SQL 컬럼명 고려)
       const targetValue = item.achievementValue || item.achievement_value || 0
       const currentValue = item.progress || 0
       
-      // 3. 달성 여부 판단 (사용자 요청: 백엔드 구현 미완료로 인한 임시 로직)
-      // "잠겨 있는 업적"이라는 이름이 아니면 모두 완료된 것으로 간주
+      // 3. 달성 여부 판단 & 타이틀 처리
       const rawTitle = item.name || item.title || '잠겨 있는 업적'
-      // 공백 제거 및 정규화 비교
-      const isAchieved = rawTitle.trim() !== '잠겨 있는 업적'
+      // 공백 제거 후 비교 (잠겨있는업적 vs 잠겨 있는 업적 모두 대응)
+      const normalizedTitle = rawTitle.replace(/\s+/g, '')
+      const isAchieved = normalizedTitle !== '잠겨있는업적'
 
       const typeLabel = formatType(item.achievementType || item.achievement_type || '')
       
@@ -112,7 +138,7 @@ const findLocalImage = (dbPath) => {
           id: item.achievementId || item.achievement_id,
           // 완료된 경우 실제 타이틀 표시, 아니면 '???' (단, DB에서 이미 '잠겨 있는 업적'으로 오면 그걸 '???'로 치환)
           // 로직상 isAchieved가 false이면(즉 '잠겨 있는 업적'이면) ???로 표시
-          title: isAchieved ? rawTitle : '???',
+          title: isAchieved ? rawTitle : '????',
           // Description은 항상 노출
           description: item.description || '설명이 없습니다.',
           status: isAchieved ? 'completed' : 'locked',
@@ -283,9 +309,12 @@ const getAchievementImage = (key) => {
                                 </div>
                             </div>
 
-                            <!-- Reward (Only if completed or show always?) -->
-                            <div v-else class="mt-1 flex items-center text-xs font-bold text-pink-500">
-                                <span>💖 완료일: {{ item.achievedAt || '2024.12.24' }}</span>
+                            <!-- Reward (Only if completed) -->
+                            <!-- 사용자 요청: 완료일 제거하고 COMPLETE 배지 표시, 아래쪽으로 정렬은 스크립트에서 처리됨 -->
+                            <div v-else class="mt-2 flex items-center gap-2">
+                                <span class="px-3 py-1 text-red-600 text-sm font-black border-4 border-red-600 rounded-lg tracking-widest transform -rotate-12 opacity-80 mix-blend-multiply" style="font-family: 'Courier New', Courier, monospace;">
+                                    COMPLETE
+                                </span>
                             </div>
                         </div>
                       </div>

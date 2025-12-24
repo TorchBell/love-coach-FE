@@ -1,37 +1,185 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useNpcStore } from '@/stores/npcStore'
-import { CHAR_IMAGES } from '@/assets/dummy/index.js'
+import { useAchievementStore } from '@/stores/achievementStore'
+import { useGalleryStore } from '@/stores/galleryStore'
+import { CHAR_IMAGES, UI_IMAGES } from '@/assets/dummy/index.js'
 import MainLayout from '../layouts/MainLayout.vue'
 import DeleteAccountModal from '../components/DeleteAccountModal.vue'
+import ToastNotification from '../components/ToastNotification.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const npcStore = useNpcStore()
+const achievementStore = useAchievementStore()
+const galleryStore = useGalleryStore()
 const showDeleteModal = ref(false)
 
 const activeTab = ref('activity')
+
+// Toast State
+const toast = ref({
+    visible: false,
+    message: '',
+    type: 'error'
+})
+
+const showToast = (message, type = 'error') => {
+    toast.value = {
+        visible: true,
+        message,
+        type
+    }
+}
+
+// 프로필 저장 핸들러
+const handleSaveProfile = async () => {
+  // 1. 기본 유효성 검사
+  if (!editForm.value.nickname.trim()) {
+    showToast('닉네임을 입력해주세요.')
+    return
+  }
+
+  // 2. 현재 비밀번호 (필수) 검사
+  if (!editForm.value.currentPassword) {
+      showToast('정보를 수정하려면 현재 비밀번호를 입력해주세요.')
+      return
+  }
+
+  // 3. 비밀번호 변경 모드일 때 추가 검사
+  if (editForm.value.isPasswordChangeMode) {
+      if (!editForm.value.newPassword) {
+          showToast('새로운 비밀번호를 입력해주세요.')
+          return
+      }
+      if (editForm.value.newPassword !== editForm.value.confirmPassword) {
+          showToast('새로운 비밀번호가 일치하지 않습니다.')
+          return
+      }
+      if (editForm.value.newPassword === editForm.value.currentPassword) {
+          showToast('지금 사용 중인 비밀번호로는 변경할 수 없습니다!')
+          return
+      }
+      if (editForm.value.newPassword.length < 4) {
+           showToast('비밀번호는 최소 4자 이상이어야 합니다.')
+           return
+      }
+  }
+
+  isSaving.value = true
+  
+  try {
+    // 4. Payload 구성 (백엔드 DTO: UserUpdateRequest 확인 후 키 매핑)
+    // 백엔드는 nickname, gender, birthDate 수정 시에도 password(기존) 검증을 수행함.
+    // 키 매핑: frontend 'currentPassword' -> backend 'password'
+    //          frontend 'newPassword' -> backend 'newPassword'
+    const payload = {
+        nickname: editForm.value.nickname,
+        gender: editForm.value.gender,
+        birthDate: editForm.value.birthDate || null, // 빈 문자열은 null로 전송
+        password: editForm.value.currentPassword, // 기존 비밀번호 (검증용 필수)
+        
+        // 비밀번호 변경 모드인 경우에만 newPassword 전송
+        ...(editForm.value.isPasswordChangeMode ? { 
+            newPassword: editForm.value.newPassword 
+        } : {})
+    }
+
+    const success = await authStore.updateProfile(payload)
+    
+    if (success) {
+        showToast('회원정보가 안전하게 저장되었습니다!', 'success')
+        // 비밀번호 필드 및 모드 초기화
+        editForm.value.currentPassword = ''
+        editForm.value.newPassword = ''
+        editForm.value.confirmPassword = ''
+        editForm.value.isPasswordChangeMode = false
+    } else {
+        showToast('저장에 실패했습니다. 비밀번호를 확인해주세요.')
+    }
+  } catch (error) {
+      console.error(error)
+      // 400 에러 처리 (비밀번호 불일치 등)
+      if (error.response && error.response.status === 400) {
+           showToast('비밀번호가 일치하지 않거나 입력값이 올바르지 않습니다.')
+      } else {
+           showToast('오류가 발생했습니다.')
+      }
+  } finally {
+      isSaving.value = false
+  }
+}
 const isSummaryView = ref(false) // 타임라인 vs 요약 보기 토글
 const isLoading = ref(false)
 const isSaving = ref(false)
 
-// === 1. 프로필 수정 상태 ===
+// --- 이미지 로딩 로직 (AchievementView & GalleryView 통일) ---
+// 업적 아이콘
+const achievementImages = import.meta.glob('@/assets/achievement/**/*.{png,jpg,jpeg,webp}', { eager: true })
+const achievementPaths = Object.keys(achievementImages)
+
+const findAchievementImage = (dbPath) => {
+    if (!dbPath) return null
+    if (dbPath.startsWith('http')) return dbPath
+    
+    // DB 경로 정규화
+    const normalizedDbPath = dbPath.replace(/\\/g, '/')
+    
+    // 1. 경로 포함 여부 확인
+    const match = achievementPaths.find(localPath => localPath.includes(normalizedDbPath))
+    if (match) return achievementImages[match].default || achievementImages[match]
+    
+    // 2. 파일명만으로 Fallback
+    const filename = normalizedDbPath.split('/').pop()
+    const fallbackMatch = achievementPaths.find(localPath => localPath.endsWith(filename))
+    if (fallbackMatch) return achievementImages[fallbackMatch].default || achievementImages[fallbackMatch]
+
+    return null
+}
+
+// 갤러리 이미지
+const galleryImages = import.meta.glob('@/assets/gallery/**/*.{png,jpg,jpeg,webp}', { eager: true })
+const galleryPaths = Object.keys(galleryImages)
+
+const findGalleryImage = (dbPath) => {
+    if (!dbPath) return null
+    if (dbPath.startsWith('http')) return dbPath
+    
+    // DB 경로 정규화
+    const normalizedDbPath = dbPath.replace(/\\/g, '/')
+    
+    // 1. 경로 포함 여부 확인
+    const match = galleryPaths.find(localPath => localPath.includes(normalizedDbPath))
+    if (match) return galleryImages[match].default || galleryImages[match]
+    
+    // 2. 파일명만으로 Fallback
+    const filename = normalizedDbPath.split('/').pop()
+    const fallbackMatch = galleryPaths.find(localPath => localPath.endsWith(filename))
+    if (fallbackMatch) return galleryImages[fallbackMatch].default || galleryImages[fallbackMatch]
+
+    return null
+}
+// -----------------------------------------------------------
+
+// ... (프로필, 알림, 앱 설정 상태 유지) ...
 const editForm = ref({
     email: '',
     nickname: '',
     gender: 'M',
-    birthDate: ''
+    birthDate: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    isPasswordChangeMode: false
 })
 
-// === 2. 알림 설정 상태 ===
 const notifications = ref({
     push: true,
     email: false
 })
 
-// === 3. 앱 설정 상태 ===
 const appSettings = ref({
     loadingScreen: true,
     completionAnim: true
@@ -39,12 +187,12 @@ const appSettings = ref({
 
 // 메뉴 목록
 const menuItems = [
-    { id: 'activity', label: '내 활동', icon: '📊' },
-    { id: 'edit', label: '개인 정보 수정', icon: '✏️' },
-    { id: 'notification', label: '알림', icon: '🔔' },
-    { id: 'help', label: '도움말', icon: '❓' },
-    { id: 'settings', label: '설정', icon: '⚙️' },
-    { id: 'info', label: '정보', icon: 'ℹ️' },
+    { id: 'activity', label: '내 활동' },
+    { id: 'edit', label: '개인 정보 수정' },
+    { id: 'notification', label: '알림' },
+    { id: 'help', label: '도움말' },
+    { id: 'settings', label: '설정' },
+    { id: 'info', label: '정보' },
 ]
 
 // 크레딧 표시
@@ -64,32 +212,90 @@ const affinity = computed(() => {
   }
 })
 
-// === Mock Data for Timeline ===
-const mockActivities = ref([
-    {
-        date: '2024년 5월 20일',
-        items: [
-            { type: 'achievement', title: '설레는 첫 만남', description: '토마와 첫 식단 상담을 완료했어요!', image: CHAR_IMAGES.toma },
-        ]
-    },
-    {
-        date: '2024년 5월 22일',
-        items: [
-            { type: 'achievement', title: '작심삼일 탈출', description: '3일 연속 기록 달성!', image: null },
-            { type: 'gallery', title: '벨의 응원', description: '벨의 특별한 응원 메시지 카드를 획득했어요.', image: CHAR_IMAGES.belle }
-        ]
-    },
-    {
-        date: '2024년 5월 25일',
-        items: [
-            { type: 'achievement', title: '유산소 마스터 I', description: '유산소 운동 누적 5시간 달성', image: null }
-        ]
-    }
-])
+// === Real Data for Timeline (from Achievement Store) ===
+const timelineActivities = computed(() => {
+    const list = achievementStore.achievements || []
+    const galleryList = galleryStore.galleries || []
 
-// === Mock Data for Summary Stats ===
+    // 완료된 업적만 필터링 (제목이 '잠겨 있는 업적'이 아닌 것)
+    // 혹은 isAchieved 플래그 확인 (AchievementView 로직 참고)
+    const completedList = list.filter(item => {
+        // Robust check for locked achievement (ignoring spaces)
+        const rawTitle = item.name || item.title || ''
+        const normalizedTitle = rawTitle.replace(/\s+/g, '')
+        const isUnlocked = normalizedTitle !== '잠겨있는업적'
+
+        // isAchieved 플래그가 있다면 그것도 참고
+        const achievedFlag = item.isAchieved === true || item.status === 'completed'
+        
+        // 둘 중 하나라도 만족하면 완료로 간주
+        return isUnlocked || achievedFlag
+    })
+
+    // 날짜별 그룹핑
+    const grouped = {}
+    completedList.forEach(item => {
+        // 날짜 포맷 (YYYY-MM-DD -> YYYY년 M월 D일)
+        let dateStr = item.achievedAt || item.achieved_at || item.createdAt || '날짜 미상'
+        try {
+             const d = new Date(dateStr)
+             if (!isNaN(d)) {
+                 dateStr = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`
+             }
+        } catch (e) { /* ignore */ }
+
+        if (!grouped[dateStr]) grouped[dateStr] = []
+        
+        // 아이콘 매핑
+        const mappedIcon = findAchievementImage(item.iconUrl || item.icon_url)
+
+        // 보상 갤러리 확인
+        let rewardGalleryImage = null
+        const rgid = item.rewardGalleryId || item.reward_gallery_id
+        if (rgid) {
+            const linkedGallery = galleryList.find(g => (g.galleryId || g.gallery_id) === rgid)
+            if (linkedGallery) {
+                // 갤러리 이미지 매핑
+                rewardGalleryImage = findGalleryImage(linkedGallery.imageUrl || linkedGallery.image_url)
+            }
+        }
+
+        grouped[dateStr].push({
+            type: 'achievement',
+            title: item.name || item.title || '업적 달성',
+            description: item.description || '새로운 업적을 달성했습니다!',
+            image: mappedIcon, // 업적 아이콘
+            rewardImage: rewardGalleryImage, // 보상 갤러리 이미지 (있을 경우)
+            hasReward: !!rewardGalleryImage
+        })
+    })
+    
+    // 배열로 변환 및 최신순 정렬
+    // 날짜 문자열 정렬이 까다로우니, 원본 키를 따로 관리하거나 역순 정렬
+    // 여기서는 단순 역순 (최신 날짜가 위로 오게 하려면 키 정렬 필요)
+    // 날짜 파싱 가능한 문자열이라 가정하고 정렬
+    const sortedKeys = Object.keys(grouped).sort((a, b) => {
+        if (a === '날짜 미상') return 1
+        if (b === '날짜 미상') return -1
+        // 한글 날짜 파싱해서 비교
+        const parseKoDate = (s) => {
+            const parts = s.match(/(\d+)년 (\d+)월 (\d+)일/)
+            if (!parts) return 0
+            return new Date(parts[1], parts[2]-1, parts[3]).getTime()
+        }
+        return parseKoDate(b) - parseKoDate(a)
+    })
+
+    return sortedKeys.map(date => ({
+        date,
+        items: grouped[date]
+    }))
+})
+
+
+// === Mock Data for Summary Stats (placeholder - can be connected to real stats later) ===
 const summaryStats = ref({
-    totalAchievements: 12,
+    totalAchievements: 12, // TODO: Compute from store
     totalGalleries: 5,
     dietLogs: 45,
     workoutLogs: 32,
@@ -100,12 +306,13 @@ const summaryStats = ref({
 
 onMounted(async () => {
     await npcStore.fetchNpcs()
-    // 초기 폼 데이터 설정
+    await achievementStore.fetchAchievements() // 업적 데이터 로드
+    await galleryStore.fetchGalleries() // 갤러리 데이터 로드 (보상 이미지 매핑용)
     if (authStore.user) {
         editForm.value.email = authStore.user.email || ''
-        editForm.value.nickname = authStore.user.name || ''
+        editForm.value.nickname = authStore.user.nickname || authStore.user.name || ''
         editForm.value.gender = authStore.user.gender || 'M'
-        editForm.value.birthDate = authStore.user.birthdate || '' // Note: store uses 'birthdate' (lowercase d) based on profile header code
+        editForm.value.birthDate = authStore.user.birthDate || '' 
     }
 })
 
@@ -114,33 +321,7 @@ const toggleSummary = () => {
 }
 
 // 프로필 저장 핸들러
-const handleSaveProfile = async () => {
-  if (!editForm.value.nickname) {
-    alert('닉네임을 입력해주세요.')
-    return
-  }
 
-  isSaving.value = true
-  
-  try {
-    const success = await authStore.updateProfile({
-        name: editForm.value.nickname,
-        gender: editForm.value.gender,
-        birthDate: editForm.value.birthDate
-    })
-    
-    if (success) {
-        alert('회원정보가 안전하게 저장되었습니다! ✨')
-    } else {
-        alert('저장에 실패했습니다. 다시 시도해주세요.')
-    }
-  } catch (error) {
-      console.error(error)
-      alert('오류가 발생했습니다.')
-  } finally {
-      isSaving.value = false
-  }
-}
 
 const handleDeleteAccount = () => { showDeleteModal.value = true }
 const handleDeleteCancel = () => { showDeleteModal.value = false }
@@ -201,17 +382,14 @@ const handleDeleteConfirm = async () => {
                         <!-- Top Row: Counts -->
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             <div class="bg-gray-50 p-5 rounded-2xl flex flex-col items-center justify-center gap-2 border border-gray-100">
-                                <span class="text-3xl">🏆</span>
                                 <span class="text-sm text-gray-500 font-bold">완료 업적</span>
                                 <span class="text-2xl font-black text-gray-800">{{ summaryStats.totalAchievements }}</span>
                             </div>
                             <div class="bg-gray-50 p-5 rounded-2xl flex flex-col items-center justify-center gap-2 border border-gray-100">
-                                <span class="text-3xl">🖼️</span>
                                 <span class="text-sm text-gray-500 font-bold">수집 갤러리</span>
                                 <span class="text-2xl font-black text-gray-800">{{ summaryStats.totalGalleries }}</span>
                             </div>
                             <div class="bg-gray-50 p-5 rounded-2xl flex flex-col items-center justify-center gap-2 border border-gray-100 col-span-2 lg:col-span-2">
-                                <span class="text-3xl">💕</span>
                                 <span class="text-sm text-gray-500 font-bold">최애 갤러리</span>
                                 <span class="text-xl font-black text-pastel-red truncate max-w-full px-2">{{ summaryStats.mostViewedGallery }}</span>
                             </div>
@@ -220,17 +398,14 @@ const handleDeleteConfirm = async () => {
                         <!-- Middle Row: Logs -->
                         <div class="grid grid-cols-3 gap-4">
                             <div class="bg-pastel-green/10 p-4 rounded-2xl text-center border border-pastel-green/20">
-                                <span class="block text-2xl mb-1">🥗</span>
                                 <p class="text-xs font-bold text-gray-500 mb-1">식단</p>
                                 <p class="text-xl font-black text-gray-800">{{ summaryStats.dietLogs }}회</p>
                             </div>
                             <div class="bg-pastel-blue/10 p-4 rounded-2xl text-center border border-pastel-blue/20">
-                                <span class="block text-2xl mb-1">💪</span>
                                 <p class="text-xs font-bold text-gray-500 mb-1">근력</p>
                                 <p class="text-xl font-black text-gray-800">{{ summaryStats.workoutLogs }}회</p>
                             </div>
                             <div class="bg-pastel-yellow/10 p-4 rounded-2xl text-center border border-pastel-yellow/20">
-                                <span class="block text-2xl mb-1">🏃‍♀️</span>
                                 <p class="text-xs font-bold text-gray-500 mb-1">유산소</p>
                                 <p class="text-xl font-black text-gray-800">{{ summaryStats.cardioLogs }}회</p>
                             </div>
@@ -239,7 +414,7 @@ const handleDeleteConfirm = async () => {
                         <!-- Bottom Row: Affinity -->
                         <div class="bg-white rounded-3xl p-6 shadow-md border border-gray-100">
                             <h3 class="font-bold text-gray-700 mb-6 flex items-center gap-2">
-                                <span class="text-red-500">❤️</span> 호감도 현황
+                                호감도 현황
                             </h3>
                             <div class="space-y-6">
                                 <div v-for="(score, char) in affinity" :key="char" class="flex items-center gap-4">
@@ -267,7 +442,7 @@ const handleDeleteConfirm = async () => {
 
                     <!-- TIMELINE VIEW -->
                     <div v-else class="space-y-12 pl-4">
-                        <div v-for="(group, index) in mockActivities" :key="index" class="relative border-l-2 border-gray-200 pl-8 pb-4 last:border-l-0">
+                        <div v-for="(group, index) in timelineActivities" :key="index" class="relative border-l-2 border-gray-200 pl-8 pb-4 last:border-l-0">
                             <!-- Date Marker -->
                             <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-pastel-red border-2 border-white shadow-sm z-10"></div>
                             <h3 class="text-lg font-bold text-gray-500 mb-6 -mt-1.5">{{ group.date }}</h3>
@@ -291,7 +466,17 @@ const handleDeleteConfirm = async () => {
                                                 <span class="px-2 py-0.5 bg-gray-100 rounded text-[10px] font-bold text-gray-500 uppercase">{{ item.type }}</span>
                                                 <h4 class="text-lg font-bold text-gray-800">{{ item.title }}</h4>
                                             </div>
-                                            <p class="text-gray-600 text-sm leading-relaxed">{{ item.description }}</p>
+                                            <p class="text-gray-600 text-sm leading-relaxed mb-4">{{ item.description }}</p>
+                                            
+                                            <!-- Reward Gallery Image (if exists) -->
+                                            <div v-if="item.hasReward && item.rewardImage" class="mt-4 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                                <p class="text-xs font-bold text-gray-400 mb-2 flex items-center gap-1">
+                                                    갤러리 보상 획득
+                                                </p>
+                                                <div class="w-full h-48 rounded-lg overflow-hidden relative group/img cursor-pointer">
+                                                    <img :src="item.rewardImage" class="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105" />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -310,7 +495,6 @@ const handleDeleteConfirm = async () => {
                 <div v-else-if="activeTab === 'edit'" class="h-full">
                     <div class="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-lg border border-gray-100 max-w-2xl mx-auto">
                         <div class="text-center mb-8">
-                            <span class="text-5xl mb-4 block filter drop-shadow-sm">✏️</span>
                             <h2 class="text-2xl font-black text-gray-800 mb-2">프로필 수정</h2>
                             <p class="text-gray-500">나만의 멋진 모습을 꾸며보세요!</p>
                         </div>
@@ -367,6 +551,61 @@ const handleDeleteConfirm = async () => {
                                 />
                             </div>
 
+                            <!-- Password Change Section -->
+                            <div class="pt-6 border-t border-gray-100 mt-6">
+                                <h3 class="text-sm font-black text-gray-800 mb-4 flex items-center gap-2">
+                                    <span>🔒</span> 계정 보안 설정
+                                </h3>
+                                
+                                <div class="space-y-4">
+                                    <!-- Current Password (Always Required) -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">현재 비밀번호 <span class="text-pastel-red">*</span></label>
+                                        <input 
+                                            v-model="editForm.currentPassword" 
+                                            type="password" 
+                                            placeholder="정보 수정을 위해 필수입니다"
+                                            class="w-full px-4 py-3.5 bg-white rounded-xl border-2 border-gray-200 focus:border-pastel-red focus:ring-4 focus:ring-pastel-red/10 focus:outline-none transition-all font-bold text-gray-700 placeholder-gray-300"
+                                        />
+                                    </div>
+
+                                    <!-- Change Password Checkbox -->
+                                    <div class="flex items-center gap-2 py-2">
+                                        <input 
+                                            type="checkbox" 
+                                            id="changePasswordToggle" 
+                                            v-model="editForm.isPasswordChangeMode"
+                                            class="w-5 h-5 rounded border-gray-300 text-pastel-red focus:ring-pastel-red"
+                                        />
+                                        <label for="changePasswordToggle" class="text-sm font-bold text-gray-600 cursor-pointer select-none">
+                                            비밀번호 변경하기
+                                        </label>
+                                    </div>
+
+                                    <!-- New Password Fields (Conditional) -->
+                                    <div v-if="editForm.isPasswordChangeMode" class="space-y-4 animate-fade-in-up">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">새로운 비밀번호</label>
+                                            <input 
+                                                v-model="editForm.newPassword" 
+                                                type="password" 
+                                                placeholder="새로운 비밀번호"
+                                                class="w-full px-4 py-3.5 bg-white rounded-xl border-2 border-gray-200 focus:border-pastel-red focus:ring-4 focus:ring-pastel-red/10 focus:outline-none transition-all font-bold text-gray-700 placeholder-gray-300"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">새로운 비밀번호 확인</label>
+                                            <input 
+                                                v-model="editForm.confirmPassword" 
+                                                type="password" 
+                                                placeholder="한 번 더 입력하세요"
+                                                class="w-full px-4 py-3.5 bg-white rounded-xl border-2 border-gray-200 focus:border-pastel-red focus:ring-4 focus:ring-pastel-red/10 focus:outline-none transition-all font-bold text-gray-700 placeholder-gray-300"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Save Button -->
                             <button 
                                 @click="handleSaveProfile" 
@@ -383,7 +622,7 @@ const handleDeleteConfirm = async () => {
                 <div v-else-if="activeTab === 'notification'" class="h-full">
                     <div class="bg-white p-8 rounded-[2.5rem] shadow-lg border border-gray-100 max-w-2xl mx-auto">
                         <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">
-                            <span class="text-3xl">🔔</span> 알림 설정
+                            알림 설정
                         </h2>
                         
                         <div class="space-y-6">
@@ -429,7 +668,6 @@ const handleDeleteConfirm = async () => {
                     <div class="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-lg border border-gray-100 max-w-4xl mx-auto prose prose-gray prose-lg overflow-y-auto custom-scrollbar" style="max-height: 800px;">
                         <!-- Header -->
                         <div class="border-b-2 border-gray-100 pb-8 mb-10">
-                            <span class="text-6xl mb-4 block">📘</span>
                             <h1 class="text-4xl font-black text-gray-800 m-0 mb-2">Love Coach 사용자 가이드</h1>
                             <p class="text-xl text-gray-500 font-bold m-0">건강한 라이프스타일을 위한 완벽한 매뉴얼</p>
                         </div>
@@ -495,17 +733,14 @@ const handleDeleteConfirm = async () => {
                             
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="bg-gray-50 p-4 rounded-xl">
-                                    <span class="text-2xl mb-2 block">🍅</span>
                                     <h4 class="font-bold text-gray-800">토마 (Toma)</h4>
                                     <p class="text-xs text-gray-500">다정하고 꼼꼼한 식단 전문가. 영양 밸런스를 중요하게 생각합니다.</p>
                                 </div>
                                 <div class="bg-gray-50 p-4 rounded-xl">
-                                    <span class="text-2xl mb-2 block">💪</span>
                                     <h4 class="font-bold text-gray-800">벨 (Belle)</h4>
                                     <p class="text-xs text-gray-500">에너지 넘치는 헬스 트레이너. 득근을 위한 강력한 동기부여!</p>
                                 </div>
                                 <div class="bg-gray-50 p-4 rounded-xl">
-                                    <span class="text-2xl mb-2 block">🐤</span>
                                     <h4 class="font-bold text-gray-800">치이 (Chie)</h4>
                                     <p class="text-xs text-gray-500">귀엽고 활기찬 러닝 메이트. 함께 달리는 즐거움을 알려줍니다.</p>
                                 </div>
@@ -580,7 +815,7 @@ const handleDeleteConfirm = async () => {
                 <div v-else-if="activeTab === 'settings'" class="h-full">
                     <div class="bg-white p-8 rounded-[2.5rem] shadow-lg border border-gray-100 max-w-2xl mx-auto">
                         <h2 class="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">
-                            <span class="text-3xl">⚙️</span> 환경 설정
+                            환경 설정
                         </h2>
                         
                         <div class="space-y-6">
@@ -722,6 +957,14 @@ const handleDeleteConfirm = async () => {
       :show="showDeleteModal"
       @cancel="handleDeleteCancel"
       @confirm="handleDeleteConfirm"
+    />
+
+    <!-- Toast Notification -->
+    <ToastNotification 
+        v-if="toast.visible"
+        :message="toast.message"
+        :type="toast.type"
+        @close="toast.visible = false"
     />
   </MainLayout>
 </template>

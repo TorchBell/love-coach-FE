@@ -130,7 +130,7 @@ const goToToday = () => {
     <div class="flex justify-between items-center mb-4 shrink-0">
       <div class="flex items-center gap-3">
         <h3 class="text-2xl font-bold text-soft-black flex items-center gap-2 select-none">
-            📅 {{ currentMonthName }}
+            {{ currentMonthName }}
         </h3>
         <button 
             @click="goToToday"

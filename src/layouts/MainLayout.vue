@@ -72,7 +72,7 @@ const handleFabClick = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-cream font-sans overflow-hidden selection:bg-pastel-red selection:text-white">
+  <div class="min-h-screen bg-mint-bg font-sans overflow-hidden selection:bg-pastel-red selection:text-white">
     <!-- ... (상단 네비게이션, 메인 콘텐츠 생략) ... -->
     <nav class="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md shadow-sm z-50 flex items-center justify-between px-6 border-b border-pastel-red/10">
       <router-link to="/home" class="flex items-center gap-2 hover:opacity-80 transition-opacity">

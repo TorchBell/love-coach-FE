@@ -5,14 +5,15 @@
 @tailwind utilities;
 
 :root {
-  --color-pastel-red: #F8A8A8;
-  --color-pastel-yellow: #FFE08C;
-  --color-pastel-blue: #A8D8F8;
-  --color-soft-black: #4A4A4A;
+  --color-pastel-red: #FF8A8A;
+  --color-pastel-yellow: #FFD56B;
+  --color-pastel-blue: #8AC6FF;
+  --color-mint-bg: #D2F9F2;
+  --color-soft-black: #374151;
 }
 
 body {
-  background-color: #FFFFFF;
+  background-color: var(--color-mint-bg);
   color: var(--color-soft-black);
   font-family: 'Nunito', sans-serif;
   margin: 0;

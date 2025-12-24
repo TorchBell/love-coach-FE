@@ -13,15 +13,11 @@ const api = axios.create({
 // 요청 인터셉터
 api.interceptors.request.use(
     (config) => {
-        // localStorage에서 토큰 가져오기 (존재하는 경우)
-        const token = localStorage.getItem('accessToken')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
+        // [Session Auth] 토큰 관련 로직 제거됨
+
         // 디버깅: 전체 URL 출력
         const fullUrl = config.baseURL + config.url
         console.log('[axios] 요청 전체 URL:', fullUrl)
-        console.log('[axios] 요청 params:', config.params)
         return config
     },
     (error) => {
@@ -37,21 +33,12 @@ api.interceptors.response.use(
     (error) => {
         // 전역 에러 처리 (예: 401 Unauthorized)
         if (error.response && error.response.status === 401) {
-            const token = localStorage.getItem('accessToken')
+            console.warn('[Session] Unauthorized or Session Expired.')
 
-            // 토큰이 있는 상태에서 401이 떴다면 만료된 것이므로 삭제 및 이동
-            if (token) {
-                console.warn('Session expired. Clearing token...')
-                localStorage.removeItem('accessToken')
-                alert('로그인이 만료되었습니다. 다시 로그인해주세요.')
+            // 로그인 페이지나 홈이 아닌 경우에만 리다이렉트
+            if (window.location.pathname !== '/home' && window.location.pathname !== '/') {
+                alert('로그인이 필요하거나 세션이 만료되었습니다.')
                 window.location.href = '/home'
-            } else {
-                // 토큰이 없는데 401이면 비로그인 접근
-                console.warn('Unauthorized access without token.')
-                // 이미 홈이 아니라면 홈으로 보냄 (무한 리로드 방지)
-                if (window.location.pathname !== '/home') {
-                    window.location.href = '/home'
-                }
             }
         }
         return Promise.reject(error)
