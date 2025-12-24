@@ -37,6 +37,21 @@
           </p>
         </div>
         
+        <!-- 입력 확인 -->
+        <div class="mb-6">
+            <label class="block text-xs font-bold text-gray-500 mb-2">아래 문구를 똑같이 입력해주세요</label>
+            <div class="bg-gray-100 p-3 rounded-xl mb-3 text-xs text-gray-600 font-bold select-all">
+                예 모든 내용을 확인하고 탈퇴하는 것에 동의합니다.
+            </div>
+            <input 
+                v-model="confirmationText"
+                type="text" 
+                class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-red-400 focus:outline-none text-sm font-bold"
+                placeholder="문구를 입력하세요"
+                @paste.prevent
+            />
+        </div>
+        
         <!-- 버튼 -->
         <div class="flex gap-3">
           <button 
@@ -47,7 +62,8 @@
           </button>
           <button 
             @click="handleConfirm"
-            class="flex-1 px-6 py-3 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-xl font-bold hover:shadow-lg transition-all hover:scale-105"
+            :disabled="!isConfirmed"
+            class="flex-1 px-6 py-3 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-xl font-bold transition-all hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             탈퇴하기
           </button>
@@ -58,6 +74,7 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 
 const props = defineProps({
@@ -69,12 +86,23 @@ const props = defineProps({
 
 const emit = defineEmits(['cancel', 'confirm'])
 
+const confirmationText = ref('')
+const TARGET_TEXT = "예 모든 내용을 확인하고 탈퇴하는 것에 동의합니다."
+
+const isConfirmed = computed(() => {
+    return confirmationText.value === TARGET_TEXT
+})
+
 const handleCancel = () => {
+  confirmationText.value = '' // Reset
   emit('cancel')
 }
 
 const handleConfirm = () => {
-  emit('confirm')
+  if (isConfirmed.value) {
+      emit('confirm')
+      confirmationText.value = '' // Reset
+  }
 }
 </script>
 

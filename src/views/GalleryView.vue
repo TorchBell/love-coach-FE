@@ -9,42 +9,76 @@ import { useGalleryStore } from '@/stores/galleryStore'
 const authStore = useAuthStore()
 const galleryStore = useGalleryStore()
 
-// --- 데이터 로딩 (로컬 이미지 동적 로드) ---
-const tomaImages = import.meta.glob('@/assets/gallery/common/toma/*.{png,jpg,jpeg,webp}', { eager: true })
-const belleImages = import.meta.glob('@/assets/gallery/common/belle/*.{png,jpg,jpeg,webp}', { eager: true })
-const chiiImages = import.meta.glob('@/assets/gallery/common/chii/*.{png,jpg,jpeg,webp}', { eager: true })
+// --- 데이터 로딩 (로컬 이미지 동적 로드 & 매핑) ---
+const localImages = import.meta.glob('@/assets/gallery/**/*.{png,jpg,jpeg,webp}', { eager: true })
+const localAssetPaths = Object.keys(localImages)
 
-const extractImagePaths = (globResult) => {
-    return Object.values(globResult).map(module => module.default || module)
+const findLocalImage = (dbPath) => {
+    if (!dbPath) return null
+    if (dbPath.startsWith('http')) return dbPath
+    
+    // DB 경로(예: gallery/common/toma/1.jpg)가 로컬 경로(예: .../assets/gallery/common/toma/1.jpg)에 포함되는지 확인
+    const normalizedDbPath = dbPath.replace(/\\/g, '/')
+    
+    // 1. 경로 포함 여부 확인
+    const match = localAssetPaths.find(localPath => localPath.includes(normalizedDbPath))
+    if (match) return localImages[match].default || localImages[match]
+    
+    // 2. 파일명만으로 Fallback
+    const filename = normalizedDbPath.split('/').pop()
+    const fallbackMatch = localAssetPaths.find(localPath => localPath.endsWith(filename))
+    if (fallbackMatch) return localImages[fallbackMatch].default || localImages[fallbackMatch]
+
+    return null
 }
 
-const loadedImages = {
-    toma: extractImagePaths(tomaImages),
-    belle: extractImagePaths(belleImages),
-    chie: extractImagePaths(chiiImages) // 'chii' 폴더를 'chie' 캐릭터 코드로 매핑
-}
+// 초기 데이터 로드
+onMounted(async () => {
+    await galleryStore.fetchGalleries()
+})
 
 const galleryImages = computed(() => {
-    const allImages = []
-    
-    // 각 캐릭터별 이미지 매핑
-    Object.entries(loadedImages).forEach(([char, images]) => {
-        images.forEach((imgSrc, index) => {
-            allImages.push({
-                id: `${char}-${index}`,
-                title: `${char.toUpperCase()} Moment #${index + 1}`,
-                image: imgSrc,
-                gif: null,
-                sidecut: null,
-                character: char,
-                unlocked: true, // 로컬 파일은 모두 해금 상태로 가정
-                unlockCost: 0,
-                createdAt: new Date()
-            })
-        })
-    })
+    const storeList = galleryStore.galleries || [] // 백엔드 데이터
 
-    return allImages
+    // DB 데이터를 UI 포맷으로 변환
+    return storeList.map((item, index) => {
+        // NPC ID 매핑
+        let char = 'toma'
+        
+        // 1순위: URL 분석 (사용자 요청: URL에 토마/벨/치에가 명시되어 있음)
+        const dbUrl = (item.imageUrl || item.image_url || '').toLowerCase()
+        if (dbUrl.includes('toma')) char = 'toma'
+        else if (dbUrl.includes('belle')) char = 'belle'
+        else if (dbUrl.includes('chie') || dbUrl.includes('chii')) char = 'chie'
+        else {
+            // 2순위: NPC ID (없거나 URL로 판단 불가 시)
+            const rawId = item.npcId !== undefined ? item.npcId : item.npc_id
+            const nid = Number(rawId)
+            
+            if (nid === 1) char = 'toma'
+            else if (nid === 2) char = 'belle'
+            else if (nid === 3) char = 'chie'
+            else {
+                // 기본값 토마
+            }
+        }
+
+        // 이미지 매핑
+        const mainImg = findLocalImage(item.imageUrl || item.image_url) || CHAR_IMAGES[char]
+        const sideImg = findLocalImage(item.bCutImageUrl || item.b_cut_image_url) // 없을 수 있음
+
+        return {
+            id: item.galleryId || item.gallery_id || `local-${index}`,
+            title: item.title || `${char.toUpperCase()} Moment`,
+            image: mainImg,
+            sidecut: sideImg, // 뒷면 이미지
+            character: char,
+            unlocked: item.isUnlocked || item.unlocked || false, // DB 해금 여부
+            unlockCost: 500, // 기본값 (DB에 없음)
+            unlockCondition: item.unlockCondition || item.unlock_condition,
+            createdAt: item.createdAt || new Date()
+        }
+    })
 })
 
 // --- 상태 관리 ---
@@ -62,7 +96,7 @@ const previewImage = ref(null)
 const selectedListId = ref(null)
 const isPreviewAnimating = ref(false)
 const showFlipped = ref(false) // Moved up here
-let debounceTimer = null
+const debounceTimer = ref(null)
 
 const toggleFlip = () => {
     if (previewImage.value?.unlocked) {
@@ -84,6 +118,7 @@ const updatePreview = (image) => {
 }
 
 const selectImageImmediate = (image) => {
+    if (!image) return
     selectedListId.value = image.id
     previewImage.value = image
     showFlipped.value = false
@@ -94,10 +129,10 @@ const handleListSelect = (image) => {
     
     selectedListId.value = image.id // 리스트 UI 즉시 반영
     
-    if (debounceTimer) clearTimeout(debounceTimer)
+    if (debounceTimer.value) clearTimeout(debounceTimer.value)
     
     // 0.8초 딜레이 후 프리뷰 업데이트
-    debounceTimer = setTimeout(() => {
+    debounceTimer.value = setTimeout(() => {
         updatePreview(image)
     }, 800)
 }
@@ -106,7 +141,11 @@ const handleListSelect = (image) => {
 watch(filteredImages, (newImages) => {
     if (newImages.length > 0) {
         // 필터가 바뀌면 첫 번째 이미지를 선택하되, 애니메이션 없이 즉시 변경
-        selectImageImmediate(newImages[0])
+        // 이미 선택된 게 리스트에 없다면 첫번째로
+        const exists = newImages.find(img => img.id === selectedListId.value)
+        if (!exists) {
+            selectImageImmediate(newImages[0])
+        }
     } else {
         previewImage.value = null
         selectedListId.value = null
@@ -141,11 +180,13 @@ const handleUnlock = async (image) => {
   if (!confirm(`${image.unlockCost} 토큰을 사용하여 해금하시겠습니까?`)) return
   
   const result = await galleryStore.unlockGallery(image.id)
-  if (result && result.success) {
+  
+  // result가 성공이면 store가 이미 refresh됨 -> galleryImages computed 업데이트됨 -> UI 반영
+  if (result) {
       alert('🎉 해금되었습니다!')
       await authStore.fetchUserProfile()
   } else {
-      alert('해금에 실패했습니다.')
+      // 에러 메시지는 store에서 처리 혹은 여기서 추가 처리
   }
 }
 
@@ -182,22 +223,19 @@ onUnmounted(() => {
                     <div class="flex-1 relative overflow-hidden bg-gray-50 perspective-1000 flex items-center justify-center p-8 bg-grid-pattern">
                         <div v-if="previewImage" class="relative w-full h-full transition-all duration-500 preserve-3d" :class="{ 'opacity-0 scale-95': isPreviewAnimating, 'rotate-y-180': showFlipped }">
                             
-                            <!-- 앞면 (Normal) -->
+                                <!-- 앞면 (Normal) - 항상 보임 -->
                             <div class="absolute inset-0 backface-hidden flex items-center justify-center">
                                 <img :src="previewImage.image" class="max-w-full max-h-full object-contain drop-shadow-2xl rounded-lg" alt="Preview" />
                                  <!-- Reflection Effect -->
                                  <div class="absolute -bottom-8 left-0 right-0 h-8 bg-gradient-to-t from-white/50 to-transparent transform scale-y-[-1] opacity-20 blur-sm pointer-events-none"></div>
 
-                                <!-- 잠금 오버레이 -->
-                                <div v-if="!previewImage.unlocked" class="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center rounded-2xl">
-                                    <div class="text-white text-center">
-                                        <span class="text-6xl animate-bounce">🔒</span>
-                                        <p class="font-bold mt-6 text-2xl tracking-[0.2em]">LOCKED</p>
-                                    </div>
+                                <!-- 잠금 상태 표시 (작게) - 이미지는 가리지 않음 -->
+                                <div v-if="!previewImage.unlocked" class="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full backdrop-blur-md flex items-center gap-2">
+                                    <span class="text-sm">🔒 Flip Locked</span>
                                 </div>
                             </div>
 
-                            <!-- 뒷면 (Sidecut) -->
+                            <!-- 뒷면 (Sidecut) - 해금 시에만 접근 가능 -->
                             <div class="absolute inset-0 backface-hidden rotate-y-180 flex items-center justify-center bg-white rounded-2xl shadow-inner">
                                 <img :src="previewImage.sidecut || previewImage.image" class="max-w-full max-h-full object-contain drop-shadow-2xl rounded-lg" alt="Sidecut" />
                                 <div class="absolute top-6 left-6 bg-pastel-red text-white px-5 py-2 rounded-full text-sm font-bold shadow-xl animate-pulse flex items-center gap-2">
@@ -220,13 +258,16 @@ onUnmounted(() => {
                         </div>
                         
                         <div v-if="previewImage" class="flex gap-3">
+                            <!-- 해금 버튼 (잠겨있을 때) -->
                             <button v-if="!previewImage.unlocked" @click="handleUnlock(previewImage)" class="px-6 py-2 bg-gray-900 text-white rounded-full font-bold hover:bg-gray-800 transition-all shadow-lg hover:scale-105 hover:shadow-xl flex items-center gap-2">
                                 <span>🔓</span>
-                                <span>Unlock ({{ previewImage.unlockCost }})</span>
+                                <span>Unlock Flip ({{ previewImage.unlockCost }})</span>
                             </button>
+                            
+                            <!-- 뒤집기 버튼 (해금 완료 시) -->
                             <button v-else @click="toggleFlip" class="px-6 py-2 rounded-full font-bold transition-all shadow-md hover:scale-105 flex items-center gap-2"
                                 :class="showFlipped ? 'bg-gray-100 text-gray-600 border border-gray-200' : 'bg-pastel-red text-white hover:bg-red-400 shadow-red-200'">
-                                <span>{{ showFlipped ? '↩️ Return' : '✨ Secret Cut' }}</span>
+                                <span>{{ showFlipped ? '↩️ Return' : '✨ See Secret' }}</span>
                             </button>
                         </div>
                     </div>
@@ -274,8 +315,8 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <!-- 잠금 뱃지 -->
-                        <div v-if="!img.unlocked" class="absolute top-2 right-2 bg-black/80 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md backdrop-blur-sm">
+                        <!-- 잠금 뱃지 (작게 표시) -->
+                        <div v-if="!img.unlocked" class="absolute top-2 right-2 bg-black/80 text-white/90 w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow-md backdrop-blur-sm border border-white/20">
                             🔒
                         </div>
                     </div>
@@ -319,7 +360,7 @@ onUnmounted(() => {
                         <!-- Hover Info -->
                         <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 text-center">
                             <h4 class="font-serif font-black text-xl mb-1 italic">{{ img.title }}</h4>
-                            <span class="text-[10px] tracking-widest border border-white/50 px-3 py-1 rounded-full uppercase">{{ img.unlocked ? 'Unlocked' : 'Locked' }}</span>
+                            <span class="text-[10px] tracking-widest border border-white/50 px-3 py-1 rounded-full uppercase">{{ img.unlocked ? 'Unlocked' : 'Flip Locked' }}</span>
                         </div>
 
                         <!-- Lock Badge -->

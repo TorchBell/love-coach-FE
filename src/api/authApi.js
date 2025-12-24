@@ -61,11 +61,11 @@ export const authApi = {
 
     /**
      * 크레딧 사용
-     * POST /api/users/credit-usage
+     * POST /api/users/credit
      * @param {Object} request - { amount, description }
-     * @returns {Promise<{data: CreditUsageResponse}>}
+     * @returns {Promise<{data: CreditResponse}>}
      */
     async useCredit(request) {
-        return api.post('/users/credit-usage', request)
+        return api.post('/users/credit', request)
     }
 }

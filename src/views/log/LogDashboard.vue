@@ -52,7 +52,7 @@ const titleColorClass = computed(() => {
 
 // --- 데이터 분석 (Mock Data & Store Data 혼합) ---
 // * 정규분포표 데이터 생성을 위한 설정값입니다. 나중에 실제 유저 데이터 통계로 교체하세요.
-const MEAN_CALORIES = 2000 // 평균 섭취 칼로리
+const MEAN_CALORIES = 2295.8 // 평균 섭취 칼로리
 const STD_DEV = 300 // 표준 편차
 const MY_CALORIES = computed(() => logStore.monthlyTotalCaloriesIntake || 1850) // 내 섭취량 (Store 연동)
 

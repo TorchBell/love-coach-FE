@@ -30,7 +30,15 @@ export const useAchievementStore = defineStore('achievement', () => {
         error.value = null
         try {
             const response = await achievementApi.getAchievementList()
-            achievements.value = response.data || []
+            // 응답 구조 유연하게 처리 (직접 배열 or { data: [] } 래핑)
+            if (Array.isArray(response.data)) {
+                achievements.value = response.data
+            } else if (response.data && Array.isArray(response.data.data)) {
+                achievements.value = response.data.data
+            } else {
+                console.warn('[AchievementStore] Unexpected response structure:', response.data)
+                achievements.value = []
+            }
         } catch (err) {
             console.error('Failed to fetch achievements:', err)
             error.value = err.response?.data?.message || '업적을 불러오는데 실패했습니다.'

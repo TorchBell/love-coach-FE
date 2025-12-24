@@ -19,10 +19,15 @@ export const useGalleryStore = defineStore('gallery', () => {
         error.value = null
         try {
             const response = await galleryApi.getGalleryList()
-            galleries.value = response.data || []
-        } catch (err) {
-            console.error('Failed to fetch galleries:', err)
-            error.value = err.response?.data?.message || '갤러리를 불러오는데 실패했습니다.'
+            // 응답 구조 유연하게 처리
+            if (Array.isArray(response.data)) {
+                galleries.value = response.data
+            } else if (response.data && Array.isArray(response.data.data)) {
+                galleries.value = response.data.data
+            } else {
+                console.warn('[GalleryStore] Unexpected response structure:', response.data)
+                galleries.value = []
+            }
         } finally {
             isLoading.value = false
         }

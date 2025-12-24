@@ -122,7 +122,7 @@ const handleFabClick = () => {
       <!-- 우측 사이드바 (고정) - isFullWidth 아닐 때만 표시 -->
       <aside 
         v-if="!isFullWidth"
-        class="hidden md:block w-1/4 h-full fixed right-0 top-16 bottom-0 overflow-hidden bg-white/50 border-l border-pastel-red/10 z-40"
+        class="hidden md:block w-1/4 h-full fixed right-0 top-16 bottom-0 overflow-hidden bg-white border-l border-pastel-red/10 z-40"
       >
         <div class="h-full p-2 flex flex-col gap-2">
           <slot name="right-sidebar"></slot>
@@ -131,7 +131,7 @@ const handleFabClick = () => {
     </div>
 
     <!-- AI 어시스턴트 FAB (로고 클릭 시 채팅 열기) -->
-    <div class="fixed bottom-8 right-8 z-50">
+    <div class="fixed bottom-8 right-8 z-50 pointer-events-auto">
       <button 
         @click="handleFabClick"
         class="w-16 h-16 rounded-full bg-white shadow-lg border-4 border-pastel-red overflow-hidden hover:scale-110 transition-transform duration-300"
