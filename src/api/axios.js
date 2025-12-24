@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // axios 인스턴스 생성
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+    baseURL: '/api', // Vite Proxy를 사용하기 위해 상대 경로 설정
     timeout: 40000, // AI 응답 대기를 위해 60초로 연장
     withCredentials: true,
     headers: {
