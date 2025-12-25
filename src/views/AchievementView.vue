@@ -6,6 +6,10 @@ import { CHAR_IMAGES, UI_IMAGES } from '@/assets/dummy/index.js'
 import { useAuthStore } from '@/stores/authStore'
 import { useAchievementStore } from '@/stores/achievementStore'
 
+import tomaAchievementIcon from '@/assets/icons/tomaAchievement.png'
+import belleAchievementIcon from '@/assets/icons/belleAchievement.png'
+import chiiAchievementIcon from '@/assets/icons/chiiAchievement.png'
+
 const authStore = useAuthStore()
 const achievementStore = useAchievementStore()
 
@@ -18,9 +22,9 @@ onMounted(() => {
 const activeTab = ref('toma') // 'toma', 'belle', 'chie'
 
 const tabs = [
-  { id: 'toma', name: '식단', color: 'bg-pastel-red', image: CHAR_IMAGES.toma, description: '토마와 함께!' },
-  { id: 'belle', name: '근력', color: 'bg-pastel-yellow', image: CHAR_IMAGES.belle, description: '벨과 득근!' },
-  { id: 'chie', name: '유산소', color: 'bg-pastel-blue', image: CHAR_IMAGES.chie, description: '치에와 질주!' }
+  { id: 'toma', name: '식단', color: 'bg-pastel-red', image: tomaAchievementIcon, description: '토마와 함께!' },
+  { id: 'belle', name: '근력', color: 'bg-pastel-yellow', image: belleAchievementIcon, description: '벨과 득근!' },
+  { id: 'chie', name: '유산소', color: 'bg-pastel-blue', image: chiiAchievementIcon, description: '치에와 질주!' }
 ]
 
 // --- 스토어 데이터 연동 ---
@@ -320,7 +324,7 @@ const getAchievementImage = (key) => {
 
                             <!-- Reward (Only if completed) -->
                             <!-- 사용자 요청: 완료일 제거하고 COMPLETE 배지 표시, 아래쪽으로 정렬은 스크립트에서 처리됨 -->
-                            <div v-else class="mt-2 flex items-center gap-2">
+                            <div v-else-if="item.status === 'completed'" class="mt-2 flex items-center gap-2">
                                 <span class="px-3 py-1 text-red-600 text-sm font-black border-4 border-red-600 rounded-lg tracking-widest transform -rotate-12 opacity-80 mix-blend-multiply" style="font-family: 'Courier New', Courier, monospace;">
                                     COMPLETE
                                 </span>

@@ -21,8 +21,8 @@ const emit = defineEmits(['update:filter'])
 const filters = [
   { id: 'all', label: 'All', sub: 'Moment', image: sectionImages.all, color: 'text-gray-800' },
   { id: 'toma', label: 'Toma', sub: 'Story', image: sectionImages.toma, color: 'text-pastel-red' },
-  { id: 'belle', label: 'Belle', sub: 'Training', image: sectionImages.belle, color: 'text-pastel-blue' },
-  { id: 'chie', label: 'Chie', sub: 'Running', image: sectionImages.chie, color: 'text-pastel-yellow' },
+  { id: 'belle', label: 'Belle', sub: 'Story', image: sectionImages.belle, color: 'text-pastel-blue' },
+  { id: 'chie', label: 'Chie', sub: 'Story', image: sectionImages.chie, color: 'text-pastel-yellow' },
 ]
 
 const selectFilter = (id) => {

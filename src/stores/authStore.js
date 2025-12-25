@@ -57,8 +57,8 @@ export const useAuthStore = defineStore('auth', () => {
         error.value = null
         try {
             await authApi.signup(userData)
-            // 회원가입 성공 후 자동 로그인 시도
-            return await login({ email: userData.email, password: userData.password })
+            // 회원가입 성공 (자동 로그인 제거: 보안 및 UX 흐름 개선)
+            return true
         } catch (err) {
             console.error('Signup failed:', err)
             error.value = err.response?.data?.message || '회원가입에 실패했습니다.'

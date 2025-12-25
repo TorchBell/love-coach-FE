@@ -876,15 +876,15 @@ const handleDeleteConfirm = async () => {
                         <div class="space-y-6 text-left">
                             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                                 <span class="text-gray-400 font-bold text-sm">기획팀 (Planning)</span>
-                                <span class="text-gray-800 font-bold">Team LoveCoach</span>
+                                <span class="text-gray-800 font-bold">김범승</span>
                             </div>
                             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                                 <span class="text-gray-400 font-bold text-sm">원화팀 (Art)</span>
-                                <span class="text-gray-800 font-bold">SSAFY Artists</span>
+                                <span class="text-gray-800 font-bold">전태섭</span>
                             </div>
                             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                                 <span class="text-gray-400 font-bold text-sm">개발자 (Dev)</span>
-                                <span class="text-gray-800 font-bold">Fullstack Team</span>
+                                <span class="text-gray-800 font-bold">김범승, 전태섭</span>
                             </div>
                             <div class="flex justify-between items-center pt-2">
                                 <span class="text-gray-400 font-bold text-sm">제작 (Produced by)</span>

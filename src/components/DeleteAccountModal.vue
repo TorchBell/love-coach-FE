@@ -15,11 +15,14 @@
         <!-- 우는 캐릭터 이미지 -->
         <div class="flex justify-center mb-6">
           <div class="w-40 h-40 rounded-full overflow-hidden bg-cream border-4 border-pastel-red/30 shadow-lg">
-            <img 
-              :src="CHAR_IMAGES.tomahi" 
-              alt="Sad Toma"
+            <video 
+              :src="tomacryyVideo" 
+              autoplay 
+              loop 
+              muted 
+              playsinline
               class="w-full h-full object-cover"
-            />
+            ></video>
           </div>
         </div>
         
@@ -76,6 +79,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
+import tomacryyVideo from '@/assets/icons/tomacryy.mp4'
 
 const props = defineProps({
   show: {

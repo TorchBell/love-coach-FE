@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue'
-import tomaIcon from '@/assets/smallIcon/toma.jpg'
-import belleIcon from '@/assets/smallIcon/belle.jpg'
-import chiiIcon from '@/assets/smallIcon/chii.jpg'
+import tomaIcon from '@/assets/Ai/toma.jpg'
+import belleIcon from '@/assets/Ai/belle.jpg'
+import chiiIcon from '@/assets/Ai/chii.jpg'
+import tomaLoadingVideo from '@/assets/Ai/tomaLoading.mp4'
 
 const props = defineProps({
     show: {
@@ -127,6 +128,15 @@ const parsedSections = computed(() => {
     }]
 })
 
+const videoPlayer = ref(null)
+
+const handleVideoEnded = () => {
+    if (videoPlayer.value) {
+        videoPlayer.value.currentTime = 2.4
+        videoPlayer.value.play()
+    }
+}
+
 const handleClose = () => {
     emit('close')
 }
@@ -180,10 +190,17 @@ const handleClose = () => {
                     <!-- Content: 분석 결과 -->
                     <div class="flex-1 overflow-y-auto p-6 bg-gray-50/50">
                         <!-- 로딩 상태 -->
-                        <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
-                            <div class="w-16 h-16 rounded-full border-4 border-gray-200 border-t-pastel-red animate-spin mb-4"></div>
-                            <p class="text-gray-500 font-medium">AI가 데이터를 분석하고 있습니다...</p>
-                            <p class="text-xs text-gray-400 mt-1">약 10~20초 소요됩니다</p>
+                        <!-- 로딩 상태 -->
+                        <div v-if="isLoading" class="flex flex-col items-center justify-center h-full">
+                            <video 
+                                ref="videoPlayer"
+                                :src="tomaLoadingVideo" 
+                                autoplay 
+                                muted 
+                                @ended="handleVideoEnded"
+                                class="w-full h-full object-cover max-h-[400px] rounded-2xl"
+                            ></video>
+                            <p class="text-gray-500 font-bold mt-4 animate-pulse">AI가 데이터를 분석하고 있습니다...</p>
                         </div>
                         
                         <!-- 분석 결과 섹션들 -->

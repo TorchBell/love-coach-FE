@@ -13,7 +13,8 @@ const galleryStore = useGalleryStore()
 // --- 데이터 로딩 (로컬 이미지 동적 로드 & 매핑) ---
 const localImages = import.meta.glob('@/assets/gallery/**/*.{png,jpg,jpeg,webp}', { eager: true })
 const localVideos = import.meta.glob('@/assets/gallery/sidecut/*.mp4', { eager: true })
-const localTexts = import.meta.glob('@/assets/gallery/sidecut/*.txt', { query: '?raw', eager: true })
+// [FIX] 텍스트 파일 raw 로드 설정 명확화
+const localTexts = import.meta.glob('@/assets/gallery/sidecut/*.txt', { as: 'raw', eager: true })
 
 const localAssetPaths = Object.keys(localImages)
 const localVideoPaths = Object.keys(localVideos)
@@ -24,7 +25,12 @@ const getProccessedText = (rawText) => {
     if (!rawText) return ''
     const nickname = authStore.user?.nickname || '사용자'
     // {{}} 또는 {{사용자}} 등을 닉네임으로 치환
-    return rawText.replace(/{{.*?}}/g, nickname)
+    let processed = rawText.replace(/{{.*?}}/g, nickname)
+    // 앞뒤 따옴표 제거 (json import 시 발생 가능)
+    if (processed.startsWith('"') && processed.endsWith('"')) {
+        processed = processed.slice(1, -1)
+    }
+    return processed
 }
 
 const findLocalImage = (dbPath) => {
@@ -52,32 +58,21 @@ const findLocalSidecut = (dbUrl) => {
     let text = ''
     let isDummy = false
 
-    console.log('[Gallery Debug] DB URL:', dbUrl)
-    console.log('[Gallery Debug] Local Video Paths:', localVideoPaths)
-
     if (dbUrl) {
         // DB URL에서 파일명 추출 (예: /gallery/sidecut/toma5.mp4 -> toma5)
         const filename = dbUrl.split('/').pop().split('.')[0]
-        console.log('[Gallery Debug] Extracted filename:', filename)
         
         // 비디오 찾기 (파일명으로 검색)
-        const vidPath = localVideoPaths.find(p => {
-            const localFilename = p.split('/').pop().split('.')[0]
-            return localFilename === filename
-        })
-        console.log('[Gallery Debug] Matched video path:', vidPath)
+        const vidPath = localVideoPaths.find(p => p.includes(filename))
         
         if (vidPath) {
             video = localVideos[vidPath].default || localVideos[vidPath]
         }
 
         // 같은 이름의 텍스트 파일 찾기
-        const txtPath = localTextPaths.find(p => {
-            const localFilename = p.split('/').pop().split('.')[0]
-            return localFilename === filename
-        })
+        const txtPath = localTextPaths.find(p => p.includes(filename))
         if (txtPath) {
-            text = localTexts[txtPath].default || localTexts[txtPath]
+            text = localTexts[txtPath]
         }
     }
 
@@ -89,10 +84,9 @@ const findLocalSidecut = (dbUrl) => {
         const txtPath = localTextPaths.find(p => p.includes(dummyName))
         
         if (vidPath) video = localVideos[vidPath].default || localVideos[vidPath]
-        if (txtPath) text = localTexts[txtPath].default || localTexts[txtPath]
+        if (txtPath) text = localTexts[txtPath]
     }
 
-    console.log('[Gallery Debug] Result - isDummy:', isDummy, 'hasVideo:', !!video)
     return { video, text, isDummy }
 }
 
@@ -132,13 +126,15 @@ const galleryImages = computed(() => {
         const mainImg = findLocalImage(item.imageUrl || item.image_url) || CHAR_IMAGES[char]
         
         // Sidecut 매핑 (비디오/텍스트)
-        const sidecutData = findLocalSidecut(item.bCutImageUrl || item.b_cut_image_url)
+        // [FIX] 백엔드 응답 키가 'bcutImageUrl'로 확인됨
+        const bCutUrl = item.bcutImageUrl || item.bCutImageUrl || item.b_cut_image_url
+        const sidecutData = findLocalSidecut(bCutUrl)
         
         const isDummy = sidecutData.isDummy
         
-        // 가격 정책: DB에 URL이 있으면(isDummy=false) 500, 없으면(임시) 2222
-        // 단, 특정 ID(DB에 URL이 추가된 belle/2 등)는 isDummy가 false가 되므로 500으로 자동 처리됨.
-        const price = isDummy ? 2222 : 500
+        // 가격 정책: b_cut_image_url이 있으면 500, 없으면 9999 (준비중)
+        const hasBCut = !!bCutUrl
+        const price = hasBCut ? 500 : 9999
 
         return {
             id: item.galleryId || item.gallery_id || `local-${index}`,
@@ -147,7 +143,7 @@ const galleryImages = computed(() => {
             sidecutVideo: sidecutData.video,
             sidecutText: sidecutData.text,
             character: char,
-            unlocked: item.isUnlocked || item.unlocked || false, // DB 해금 여부
+            unlocked: item.isBOpened || false, // DB 해금 여부 (B-Cut 해금 여부)
             unlockCost: price,
             unlockCondition: item.unlockCondition || item.unlock_condition,
             createdAt: item.createdAt || new Date()
@@ -181,6 +177,8 @@ const toggleFlip = () => {
 const showConfirmModal = ref(false)
 const unlockTargetImage = ref(null)
 const showComingSoonModal = ref(false)
+const isUnlocking = ref(false) // 중복 클릭 방지
+const isSpinning = ref(false) // 해금 성공 시 회전 애니메이션
 
 const openUnlockModal = (image) => {
     if (!authStore.user) {
@@ -188,9 +186,8 @@ const openUnlockModal = (image) => {
         return
     }
     
-    // isDummy 체크: b_cut_image_url이 없으면 "준비중" 모달 표시
-    if (image.unlockCost === 2222) {
-        // 2222은 isDummy일 때만 설정되는 가격
+    // 9999 크래딧이면 "준비중" 모달 표시
+    if (image.unlockCost === 9999) {
         showComingSoonModal.value = true
         return
     }
@@ -213,20 +210,49 @@ const closeUnlockModal = () => {
 }
 
 const confirmUnlock = async () => {
-    if (!unlockTargetImage.value) return
+    if (!unlockTargetImage.value || isUnlocking.value) return
     
+    isUnlocking.value = true
     const image = unlockTargetImage.value
-    const success = await galleryStore.unlockGallery(image.id)
     
-    if (success) {
-        // 성공 시 크레딧 갱신
-        await authStore.fetchUserProfile()
-        // 자동으로 뒤집어서 내용 보여주기 (이미 뒤집혀 있으므로 해금된 화면으로 전환됨)
-        showFlipped.value = true
-        closeUnlockModal()
-    } else {
-        alert('해금에 실패했습니다.')
-        closeUnlockModal()
+    // 모달 닫기 (UX: 모달이 닫히고 카드가 회전하며 해금됨)
+    closeUnlockModal()
+
+    try {
+        const success = await galleryStore.unlockGallery(image.id)
+        
+        if (success) {
+            // 1. 회전 애니메이션 시작
+            isSpinning.value = true
+            
+            // 2. 크레딧 갱신 (비동기)
+            await authStore.fetchUserProfile()
+            await galleryStore.fetchGalleries() // 목록 갱신
+
+            // 3. 현재 보고 있는 이미지 상태 강제 업데이트 (Optimistic Update)
+            if (previewImage.value && previewImage.value.id === image.id) {
+                previewImage.value.unlocked = true
+                // 스토어 갱신 후의 새 객체로 교체 (참조 유지 위함)
+                const freshImage = galleryImages.value.find(img => img.id === image.id)
+                if (freshImage) {
+                    previewImage.value = freshImage
+                }
+            }
+
+            // 4. 애니메이션 후 결과 보여주기
+            setTimeout(() => {
+                isSpinning.value = false
+                showFlipped.value = true
+            }, 1000) // 1초 동안 회전
+
+        } else {
+            alert('해금에 실패했습니다.')
+        }
+    } catch (e) {
+        console.error(e)
+        alert('오류가 발생했습니다.')
+    } finally {
+        isUnlocking.value = false
     }
 }
 
@@ -332,7 +358,7 @@ onUnmounted(() => {
                 <div class="flex-1 bg-white rounded-[2rem] shadow-2xl border border-gray-100 relative overflow-hidden group flex flex-col min-h-0">
                     <!-- 이미지 컨테이너 -->
                     <div class="flex-1 relative overflow-hidden bg-gray-50 perspective-1000 flex items-center justify-center p-8 bg-grid-pattern">
-                        <div v-if="previewImage" class="relative w-full h-full transition-all duration-500 preserve-3d" :class="{ 'opacity-0 scale-95': isPreviewAnimating, 'rotate-y-180': showFlipped }">
+                        <div v-if="previewImage" class="relative w-full h-full transition-all duration-500 preserve-3d" :class="{ 'opacity-0 scale-95': isPreviewAnimating, 'rotate-y-180': showFlipped, 'animate-spin-y': isSpinning }">
                             
                                 <!-- 앞면 (Normal) - 항상 보임 -->
                             <div class="absolute inset-0 backface-hidden flex items-center justify-center">
@@ -349,23 +375,19 @@ onUnmounted(() => {
                             <!-- 뒷면 (Sidecut) - 해금 시에만 접근 가능 -->
                             <!-- 뒷면 (Sidecut) - 해금 시에만 접근 가능 -->
                             <div class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner overflow-hidden">
-                                <!-- 해금된 상태: 비디오 + 텍스트 -->
-                                <div v-if="previewImage.unlocked" class="flex flex-col w-full h-full">
-                                    <div class="w-full aspect-video bg-black flex items-center justify-center relative flex-shrink-0">
+                                <!-- 해금된 상태: 비디오만 (텍스트는 하단 바에 표시) -->
+                                <div v-if="previewImage.unlocked" class="flex flex-col w-full h-full bg-black">
+                                     <div class="flex-1 w-full h-full flex items-center justify-center relative overflow-hidden">
                                         <video 
-                                            v-if="previewImage.sidecutVideo"
+                                            v-if="previewImage.sidecutVideo && showFlipped"
                                             :src="previewImage.sidecutVideo"
-                                            controls
                                             autoplay
+                                            muted
+                                            loop
+                                            playsinline
                                             class="w-full h-full object-contain"
                                         ></video>
                                         <div v-else class="text-white text-sm">비디오를 찾을 수 없습니다.</div>
-                                    </div>
-                                    
-                                    <div class="flex-1 p-6 flex items-center justify-center bg-gray-50 overflow-y-auto">
-                                        <p class="text-gray-700 text-lg leading-relaxed font-medium whitespace-pre-wrap text-center font-handwriting">
-                                            {{ getProccessedText(previewImage.sidecutText) }}
-                                        </p>
                                     </div>
                                 </div>
 
@@ -384,9 +406,11 @@ onUnmounted(() => {
 
                                     <button 
                                         @click.stop="openUnlockModal(previewImage)"
-                                        class="w-full py-4 bg-gradient-to-r from-pastel-red to-pink-500 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                                        :disabled="isUnlocking"
+                                        class="w-full py-4 bg-gradient-to-r from-pastel-red to-pink-500 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <span>해금하기</span>
+                                        <span v-if="isUnlocking">해금 중...</span>
+                                        <span v-else>해금하기</span>
                                     </button>
                                 </div>
                             </div>
@@ -400,19 +424,26 @@ onUnmounted(() => {
                     </div>
 
                     <!-- 하단 정보 및 액션 바 -->
-                    <div class="h-20 bg-white border-t border-gray-100 px-8 flex items-center justify-between flex-shrink-0 z-20">
-                        <div v-if="previewImage">
-                            <h3 class="text-xl md:text-2xl lg:text-3xl font-sans font-bold text-gray-800 mb-1">{{ previewImage.title }}</h3>
+                    <div class="min-h-20 h-auto py-4 bg-white border-t border-gray-100 px-8 flex items-center justify-between flex-shrink-0 z-20">
+                        <div v-if="previewImage" class="flex-1 mr-4">
+                            <h3 class="text-xl md:text-2xl lg:text-3xl font-sans font-bold text-gray-800 mb-1 break-words whitespace-pre-wrap">
+                                <span v-if="showFlipped && previewImage.unlocked" class="text-gray-800 font-handwriting">
+                                    {{ getProccessedText(previewImage.sidecutText) || previewImage.title }}
+                                </span>
+                                <span v-else>
+                                    {{ previewImage.title }}
+                                </span>
+                            </h3>
                         </div>
                         
-                        <div v-if="previewImage" class="flex gap-3">
+                        <div v-if="previewImage" class="flex gap-3 flex-shrink-0">
                             <!-- 뒤집기 버튼 -->
                             <button @click="toggleFlip" class="px-4 py-1.5 md:px-6 md:py-2 rounded-full font-bold transition-all shadow-md hover:scale-105 flex items-center gap-2 text-xs md:text-sm lg:text-base bg-pastel-red text-white hover:bg-red-400 shadow-red-200">
                                 <template v-if="showFlipped">
                                     <span>Return</span>
                                 </template>
                                 <template v-else-if="previewImage.unlocked">
-                                    <span>See Secret</span>
+                                    <span>Flip</span>
                                 </template>
                                 <template v-else>
                                     <img :src="userTokenIcon" class="w-5 h-5 object-contain" />
@@ -510,14 +541,16 @@ onUnmounted(() => {
                         <!-- Back (Hidden Info / Unlock) -->
             <div class="absolute inset-0 bg-white rounded-2xl shadow-xl backface-hidden rotate-y-180 flex flex-col overflow-hidden">
                 <!-- 해금된 상태: 비디오 + 텍스트 -->
-                <div v-if="previewImage.unlocked" class="flex flex-col h-full">
+                <div v-if="img.unlocked" class="flex flex-col h-full">
                     <div class="w-full aspect-video bg-black flex items-center justify-center relative">
                          <!-- 비디오 플레이어 -->
                          <video 
-                            v-if="previewImage.sidecutVideo"
-                            :src="previewImage.sidecutVideo"
-                            controls
+                            v-if="img.sidecutVideo"
+                            :src="img.sidecutVideo"
                             autoplay
+                            muted
+                            loop
+                            playsinline
                             class="w-full h-full object-contain"
                          ></video>
                          <div v-else class="text-white text-sm">비디오를 찾을 수 없습니다.</div>
@@ -525,7 +558,7 @@ onUnmounted(() => {
                     
                     <div class="flex-1 p-6 flex items-center justify-center bg-gray-50 overflow-y-auto">
                         <p class="text-gray-700 text-lg leading-relaxed font-medium whitespace-pre-wrap text-center font-handwriting">
-                            {{ getProccessedText(previewImage.sidecutText) }}
+                            {{ getProccessedText(img.sidecutText) }}
                         </p>
                     </div>
                 </div>
@@ -541,18 +574,20 @@ onUnmounted(() => {
                      </div>
                      
                      <div class="bg-gray-800 rounded-xl px-6 py-4 flex items-center gap-3">
-                        <span class="text-yellow-400 font-bold text-xl">🪙 {{ previewImage.unlockCost }}</span>
+                        <span class="text-yellow-400 font-bold text-xl">🪙 {{ img.unlockCost }}</span>
                         <span class="text-gray-400 text-sm">크레딧 필요</span>
                      </div>
 
                      <button 
-                        @click.stop="openUnlockModal(previewImage)"
-                        class="w-full py-4 bg-gradient-to-r from-pastel-red to-pink-500 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                        @click.stop="openUnlockModal(img)"
+                        :disabled="isUnlocking"
+                        class="w-full py-4 bg-gradient-to-r from-pastel-red to-pink-500 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                      >
-                        <span>해금하기</span>
+                        <span v-if="isUnlocking">...</span>
+                        <span v-else>해금하기</span>
                      </button>
                      
-                     <p v-if="previewImage.isDummy" class="text-xs text-gray-500 mt-4">* 임시 데이터 상품입니다 (2222C)</p>
+                     <p v-if="img.unlockCost === 9999" class="text-xs text-gray-500 mt-4">* 아직 시크릿 컷이 준비되지 않았습니다</p>
                 </div>
             </div>
                         <!-- Hover Info -->
@@ -665,5 +700,11 @@ onUnmounted(() => {
 
 .custom-scrollbar::-webkit-scrollbar {
     width: 0px; /* 스크롤바 숨김 (깔끔하게) */
+}
+
+.animate-spin-y { animation: spinY 0.6s ease-out; }
+@keyframes spinY {
+    0% { transform: rotateY(0deg); }
+    100% { transform: rotateY(180deg); } /* 360도 대신 180도로 변경하여 '뒤집힘' 상태로 자연스럽게 연결 */
 }
 </style>

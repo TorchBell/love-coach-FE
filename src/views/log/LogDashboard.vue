@@ -96,7 +96,7 @@ const titleColorClass = computed(() => {
 const STATS_STANDARDS = {
     MALE: {
         MEAN_CALORIES: 2295.8,
-        STD_DEV: 83.58,
+        STD_DEV: 150, // 분포 넓힘 (시작점 ~1850)
         CARB: 330,
         PROTEIN: 100,
         FAT: 75,
@@ -104,7 +104,7 @@ const STATS_STANDARDS = {
     },
     FEMALE: {
         MEAN_CALORIES: 1704.86,
-        STD_DEV: 43.45,
+        STD_DEV: 120, // 분포 넓힘
         CARB: 260,
         PROTEIN: 75,
         FAT: 60,
@@ -626,7 +626,7 @@ const distChartOptions = {
             beginAtZero: true,
             min: 0,
             display: false, // Y축 숨김
-            ticks: { precision: 0 }
+            // ticks: { precision: 0 } -> 제거 (소수점 표현을 위해)
         },
         x: {
             type: 'linear',
@@ -634,6 +634,18 @@ const distChartOptions = {
             ticks: {
                  callback: function(value) { return Math.round(value); } // 정수만 표시
             }
+        }
+    }
+};
+
+// 식단 정규분포 전용 옵션 (X축 시작점 1900 고정)
+const dietDistChartOptions = {
+    ...distChartOptions,
+    scales: {
+        ...distChartOptions.scales,
+        x: {
+            ...distChartOptions.scales.x,
+            min: 1900 // 사용자 요청에 따라 1900부터 시작
         }
     }
 };
@@ -702,7 +714,7 @@ const doughnutChartOptions = {
           <!-- 탄단지 비율 -->
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col">
             <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
-              <span>🍰</span> 탄단지 비율
+              탄단지 비율
             </h3>
             <div class="flex-1 relative w-full h-full flex items-center justify-center">
                <Doughnut :data="macroChartData" :options="doughnutChartOptions" />
@@ -712,11 +724,11 @@ const doughnutChartOptions = {
           <!-- 정규분포표 (내 위치) -->
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col">
             <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2 justify-between">
-              <div class="flex items-center gap-2"><span>🔔</span> 내 위치 분석</div>
+              <div class="flex items-center gap-2">내 위치 분석</div>
               <span class="text-pastel-red text-sm font-extrabold bg-pastel-red/10 px-2 py-1 rounded-lg">상위 {{ dietStats.topPercent }}%</span>
             </h3>
             <div class="flex-1 relative w-full h-full">
-               <Line :data="distributionChartData" :options="distChartOptions" />
+               <Line :data="distributionChartData" :options="dietDistChartOptions" />
             </div>
             <p class="text-xs text-center text-gray-400 mt-2">
               * 평균 섭취량 대비 나의 위치

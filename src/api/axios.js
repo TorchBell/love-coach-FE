@@ -17,7 +17,7 @@ api.interceptors.request.use(
 
         // 디버깅: 전체 URL 출력
         const fullUrl = config.baseURL + config.url
-        console.log('[axios] 요청 전체 URL:', fullUrl)
+
         return config
     },
     (error) => {
