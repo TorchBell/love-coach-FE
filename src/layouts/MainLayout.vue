@@ -8,11 +8,25 @@ import { useAuthStore } from '@/stores/authStore'
 import tomaIcon from '@/assets/smallIcon/toma.jpg'
 import belleIcon from '@/assets/smallIcon/belle.jpg'
 import chiiIcon from '@/assets/smallIcon/chii.jpg'
+import userDefaultIcon from '@/assets/icons/user-default.png'
+import userTokenIcon from '@/assets/icons/user-token.png'
+import { useLogStore } from '@/stores/logStore'
+import { onMounted } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
 const uiStore = useUiStore()
 const authStore = useAuthStore()
+const logStore = useLogStore()
+const showProfileMenu = ref(false)
+
+// Data fetching for stats
+onMounted(async () => {
+  await Promise.all([
+    logStore.fetchMonthlyLogs(),
+    logStore.fetchExercises()
+  ])
+})
 
 const props = defineProps({
   isFullWidth: {
@@ -75,18 +89,86 @@ const handleFabClick = () => {
   <div class="min-h-screen bg-mint-bg font-sans overflow-hidden selection:bg-pastel-red selection:text-white">
     <!-- ... (상단 네비게이션, 메인 콘텐츠 생략) ... -->
     <nav class="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md shadow-sm z-50 flex items-center justify-between px-6 border-b border-pastel-red/10">
-      <router-link to="/home" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-        <span class="text-2xl">🥗</span>
-        <h1 class="text-xl font-bold text-soft-black tracking-tight">LoveCoach</h1>
-      </router-link>
-      <div class="flex items-center gap-6 font-semibold text-gray-600">
-        <router-link to="/home" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">홈</router-link>
-        <router-link to="/gallery" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">갤러리</router-link>
-        <router-link to="/log" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">기록</router-link>
-        <router-link to="/achievement" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">업적</router-link>
-        <router-link to="/mypage" class="hover:text-pastel-red transition-colors" active-class="text-pastel-red">마이페이지</router-link>
-        <button @click="handleLogout" class="hover:text-pastel-red transition-colors font-bold">로그아웃</button>
+      
+      <!-- Left: Profile & RPG Stats -->
+      <div class="flex items-center gap-6">
+        <!-- Profile (Clickable for Menu) -->
+        <div class="relative">
+            <button @click="showProfileMenu = !showProfileMenu" class="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none">
+                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-gray-100">
+                     <img :src="userDefaultIcon" class="w-full h-full object-cover" />
+                </div>
+                <div class="flex flex-col items-start">
+                    <span class="text-base font-black text-gray-800 leading-none">{{ authStore.user?.nickname || authStore.user?.name || 'Player' }}</span>
+                </div>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div v-if="showProfileMenu" class="absolute top-12 left-0 w-40 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-fade-in-down">
+                <router-link to="/mypage" @click="showProfileMenu = false" class="block px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-pastel-red transition-colors">
+                    마이페이지
+                </router-link>
+                <button @click="handleLogout" class="w-full text-left px-4 py-2 text-sm font-bold text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                    로그아웃
+                </button>
+            </div>
+        </div>
+
+        <!-- Vertical Divider -->
+        <div class="h-8 w-px bg-gray-200 mx-2 hidden md:block"></div>
+
+        <!-- RPG Stats HUD (Moved to Left) -->
+        <div class="flex items-center gap-4 md:gap-6">
+            
+            <!-- HP Bar -->
+            <div class="hidden sm:flex flex-col w-32">
+                <div class="flex justify-between text-[10px] font-bold text-gray-400 mb-0.5 px-0.5">
+                    <span>HP</span>
+                    <span class="text-pastel-red">1500 / 1500</span>
+                </div>
+                <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden border border-gray-300 shadow-inner relative">
+                    <!-- Glossy Effect -->
+                     <div class="absolute top-0 left-0 w-full h-1 bg-white/30 z-10"></div>
+                    <div class="h-full bg-gradient-to-r from-red-500 to-pastel-red w-full"></div>
+                </div>
+            </div>
+
+            <!-- Stats (STR / DEX) -->
+            <div class="hidden md:flex items-center gap-4 bg-gray-100/80 px-4 py-1.5 rounded-lg border border-gray-200">
+                <!-- STR -->
+                 <div class="flex items-center gap-1.5" title="Strength (Total Volume / 30 / 400)">
+                    <div class="flex flex-col items-end leading-none">
+                        <span class="text-[8px] md:text-[10px] font-bold text-gray-400">STR</span>
+                        <span class="text-xs md:text-sm font-black text-gray-800">{{ logStore.strStat }}</span>
+                    </div>
+                </div>
+                <div class="w-px h-6 bg-gray-300"></div>
+                <!-- DEX -->
+                 <div class="flex items-center gap-1.5" title="Dexterity (Total Time * Avg Intensity / 100)">
+                    <div class="flex flex-col items-end leading-none">
+                        <span class="text-[8px] md:text-[10px] font-bold text-gray-400">DEX</span>
+                        <span class="text-xs md:text-sm font-black text-gray-800">{{ logStore.dexStat }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Currency (Token) -->
+            <div class="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200 shadow-sm transition-transform hover:scale-105 cursor-help" title="Health Tokens">
+                <img :src="userTokenIcon" class="w-5 h-5 md:w-6 md:h-6 drop-shadow-sm" />
+                <span class="text-xs md:text-sm font-black text-yellow-600">{{ authStore.user?.credit || 0 }}</span>
+            </div>
+        </div>
       </div>
+
+      <!-- Right: Navigation Links (Moved to Right) -->
+      <div class="hidden md:flex items-center gap-6 lg:gap-12 font-bold text-gray-500 text-sm lg:text-base">
+        <router-link to="/home" class="hover:text-pastel-red transition-all px-2" active-class="text-pastel-red scale-105">홈</router-link>
+        <router-link to="/gallery" class="hover:text-pastel-red transition-all px-2" active-class="text-pastel-red scale-105">갤러리</router-link>
+        <router-link to="/log" class="hover:text-pastel-red transition-all px-2" active-class="text-pastel-red scale-105">기록</router-link>
+        <router-link to="/achievement" class="hover:text-pastel-red transition-all px-2" active-class="text-pastel-red scale-105">업적</router-link>
+        <router-link to="/mypage" class="hover:text-pastel-red transition-all px-2" active-class="text-pastel-red scale-105">마이페이지</router-link>
+      </div>
+
     </nav>
 
     <!-- 메인 콘텐츠 영역 -->
@@ -115,7 +197,7 @@ const handleFabClick = () => {
         <!-- 푸터 -->
         <footer class="mt-12 py-8 text-center text-gray-400 text-sm border-t border-gray-100">
           <p>&copy; 2025 LoveCoach. All rights reserved.</p>
-          <p class="text-xs mt-2">오늘도 건강한 하루 되세요! 💪</p>
+          <p class="text-xs mt-2">오늘도 건강한 하루 되세요!</p>
         </footer>
       </main>
 

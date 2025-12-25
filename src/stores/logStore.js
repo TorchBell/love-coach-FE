@@ -1,11 +1,33 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { logApi } from '@/api/logApi'
+import { useAuthStore } from '@/stores/authStore'
 
 /**
- * 활동 기록 (식단, 근력, 유산소) 상태 관리
+ * 20대 남녀 평균 체중 (통계 데이터)
  */
+const STATISTICAL_WEIGHT = {
+    MALE: 76.59,
+    FEMALE: 58.17
+};
+
+/**
+ * MET 기반 칼로리 계산 함수
+ * 소모 칼로리(kcal) = (MET * 3.5 * 체중(kg) * 운동시간(분)) / 200
+ */
+const calculateCardioCalories = (gender, metValue, durationMinutes) => {
+    const weight = gender === 'FEMALE' ? STATISTICAL_WEIGHT.FEMALE : STATISTICAL_WEIGHT.MALE;
+    const met = Number(metValue) || 0;
+    const duration = Number(durationMinutes) || 0;
+
+    // 공식 적용
+    const totalCalories = (met * 3.5 * weight * duration) / 200;
+    return Math.round(totalCalories); // 정수로 반환
+};
+
 export const useLogStore = defineStore('log', () => {
+    const authStore = useAuthStore()
+
     // 상태
     const dietLogs = ref([])
     const workoutLogs = ref([])
@@ -13,6 +35,9 @@ export const useLogStore = defineStore('log', () => {
     const selectedDate = ref(new Date())
     const isLoading = ref(false)
     const error = ref(null)
+
+    // 음식 상세 정보 캐시 (foodId -> detail)
+    const foodDetailsMap = ref({})
 
     // 운동 종목 목록 캐시
     const muscleExercises = ref([])
@@ -57,18 +82,6 @@ export const useLogStore = defineStore('log', () => {
     // ============================================
 
     /**
-     * 월별 총 섭취 칼로리 (kcal)
-     * 계산: sum(calory * quantity) for all diet logs in the month
-     */
-    const monthlyTotalCaloriesIntake = computed(() => {
-        return dietLogs.value.reduce((total, log) => {
-            const calory = Number(log.calory) || 0
-            const quantity = Number(log.quantity) || 1
-            return total + (calory * quantity)
-        }, 0)
-    })
-
-    /**
      * 월별 총 운동 볼륨 (kg)
      * 계산: sum(weight * setCount * repsPerSet) for all workout logs in the month
      */
@@ -90,6 +103,178 @@ export const useLogStore = defineStore('log', () => {
             const burnedKcal = Number(log.burnedKcal) || 0
             return total + burnedKcal
         }, 0)
+    })
+
+    /**
+     * 월간 총 영양소 섭취량 (탄/단/지/당)
+     * foodDetailsMap을 우선 참조하여 계산
+     */
+    const monthlyTotalNutrients = computed(() => {
+        return dietLogs.value.reduce((acc, log) => {
+            const quantity = Number(log.quantity) || 1
+
+            // 1. 캐시된 음식 정보 확인
+            const detail = foodDetailsMap.value[log.foodId]
+
+            let c = 0, p = 0, f = 0, s = 0
+
+            if (detail) {
+                // API 응답 구조에 따라 조정
+                c = Number(detail.carb) || Number(detail.carbohydrate) || 0
+                p = Number(detail.protein) || 0
+                f = Number(detail.fat) || 0
+                s = Number(detail.sugar) || 0
+            } else {
+                // 2. 기존 DTO 필드 확인 (Fallback)
+                c = Number(log.carb) || Number(log.carbohydrate) || 0
+                p = Number(log.protein) || 0
+                f = Number(log.fat) || 0
+                s = Number(log.sugar) || 0
+
+                // 3. food 객체 내부 확인
+                if (log.food) {
+                    if (c === 0) c = Number(log.food.carb) || Number(log.food.carbohydrate) || 0
+                    if (p === 0) p = Number(log.food.protein) || 0
+                    if (f === 0) f = Number(log.food.fat) || 0
+                    if (s === 0) s = Number(log.food.sugar) || 0
+                }
+            }
+
+            return {
+                carbohydrate: acc.carbohydrate + (c * quantity),
+                protein: acc.protein + (p * quantity),
+                fat: acc.fat + (f * quantity),
+                sugar: acc.sugar + (s * quantity)
+            }
+        }, { carbohydrate: 0, protein: 0, fat: 0, sugar: 0 })
+    })
+
+    /**
+     * 월 별 총 섭취 칼로리 (kcal)
+     * 영양소 기반 계산 (탄*4 + 단*4 + 지*9)
+     * (추가: 만약 영양소가 0이면 log.calory 합산을 fallback으로 사용)
+     */
+    const monthlyTotalCaloriesIntake = computed(() => {
+        const { carbohydrate, protein, fat } = monthlyTotalNutrients.value
+        const nutrientsCal = (carbohydrate * 4) + (protein * 4) + (fat * 9)
+
+        if (nutrientsCal > 0) return nutrientsCal
+
+        // 영양소가 없으면 기존 calory 필드 합산 시도
+        return dietLogs.value.reduce((total, log) => {
+            const cal = Number(log.calory) || Number(log.calorie) || (log.food ? (Number(log.food.calory) || Number(log.food.calorie)) : 0) || 0
+            const qty = Number(log.quantity) || 1
+            return total + (cal * qty)
+        }, 0)
+    })
+
+    /**
+     * 식단 기록 일수 (날짜 포맷 정규화)
+     * "2024-05-20", "2024-05-20T12:00:00", "2024-05-20 12:00:00" 모두 처리
+     */
+    const dietDaysCount = computed(() => {
+        const dates = new Set(
+            dietLogs.value
+                .map(log => {
+                    const d = log.date || log.registDate
+                    if (!d) return null
+                    // YYYY-MM-DD 추출 (길이가 충분하면 앞 10자리)
+                    if (d.length >= 10) return d.substring(0, 10)
+                    return d
+                })
+                .filter(d => !!d)
+        )
+        return dates.size
+    })
+
+    /**
+     * RPG 스탯 계산 (STR - 근력)
+     * 공식: 총 볼륨 / 30일 / 400
+     */
+    const strStat = computed(() => {
+        return Math.floor(monthlyTotalVolume.value / 30 / 400)
+    })
+
+    /**
+     * RPG 스탯 계산 (DEX - 민첩/유산소)
+     * 공식: 총 운동시간(분) * 평균강도 / 100
+     * 평균강도: METs 사용 (없으면 기본값 1)
+     */
+    const dexStat = computed(() => {
+        const totalDuration = runningLogs.value.reduce((sum, log) => sum + (Number(log.durationMinutes) || 0), 0)
+
+        if (totalDuration === 0) return 0
+
+        // 가중 평균 강도 계산
+        const weightedIntensitySum = runningLogs.value.reduce((sum, log) => {
+            const duration = Number(log.durationMinutes) || 0
+            // exercise 정보가 있으면 mets 사용, 없으면 대략 5(중강도)
+            const exercise = cardioExercises.value.find(e => e.cardioExerciseId === log.cardioExerciseId)
+            const intensity = exercise ? (exercise.mets || 5) : 5
+            return sum + (duration * intensity)
+        }, 0)
+
+        const avgIntensity = weightedIntensitySum / totalDuration
+
+        return Math.floor((totalDuration * avgIntensity) / 100)
+    })
+
+    /**
+     * 일별 통계 데이터 (차트용)
+     * 날짜별로 합산된 데이터를 반환 { 'YYYY-MM-DD': value, ... }
+     */
+    const dailyDietStats = computed(() => {
+        const stats = {}
+        dietLogs.value.forEach(log => {
+            let date = log.date || log.registDate;
+            if (!date) return
+            if (date.length >= 10) date = date.substring(0, 10) // 정규화
+
+            const qty = Number(log.quantity) || 1
+            // foodDetailsMap 활용하여 정확한 칼로리 계산
+            let cal = 0
+            const detail = foodDetailsMap.value[log.foodId]
+            if (detail) {
+                const c = Number(detail.carb) || Number(detail.carbohydrate) || 0
+                const p = Number(detail.protein) || 0
+                const f = Number(detail.fat) || 0
+                cal = (c * 4) + (p * 4) + (f * 9)
+            } else {
+                // Fallback
+                cal = Number(log.calory) || Number(log.calorie) || (log.food ? (Number(log.food.calory) || Number(log.food.calorie)) : 0) || 0
+            }
+            if (!stats[date]) stats[date] = 0
+            stats[date] += (cal * qty)
+        })
+        return stats
+    })
+
+    const dailyWorkoutStats = computed(() => {
+        const stats = {}
+        workoutLogs.value.forEach(log => {
+            let date = log.date || log.registDate;
+            if (!date) return
+            if (date.length >= 10) date = date.substring(0, 10)
+
+            const vol = (Number(log.weight) || 0) * (Number(log.setCount) || 0) * (Number(log.repsPerSet) || 0)
+            if (!stats[date]) stats[date] = 0
+            stats[date] += vol
+        })
+        return stats
+    })
+
+    const dailyRunningStats = computed(() => {
+        const stats = {}
+        runningLogs.value.forEach(log => {
+            let date = log.date || log.registDate;
+            if (!date) return
+            if (date.length >= 10) date = date.substring(0, 10)
+
+            const kcal = Number(log.burnedKcal) || 0
+            if (!stats[date]) stats[date] = 0
+            stats[date] += kcal
+        })
+        return stats
     })
 
     // 동작 (Actions)
@@ -145,6 +330,31 @@ export const useLogStore = defineStore('log', () => {
             dietLogs.value = dietRes.data || []
             workoutLogs.value = workoutRes.data || []
             runningLogs.value = runningRes.data || []
+
+            // [DISABLED] 음식 상세 정보 추가 로드 - 백엔드 API가 없어서 주석 처리
+            // 추후 백엔드에 /api/food/info/{foodId} API가 구현되면 활성화
+            /*
+            const missingFoodIds = [...new Set(dietLogs.value
+                .map(log => log.foodId)
+                .filter(id => id && !foodDetailsMap.value[id])
+            )]
+
+            if (missingFoodIds.length > 0) {
+                const detailPromises = missingFoodIds.map(id =>
+                    logApi.getFoodInfo(id)
+                        .then(res => ({ id, data: res.data }))
+                        .catch(() => null)
+                )
+
+                const results = await Promise.all(detailPromises)
+
+                results.forEach(res => {
+                    if (res && res.data) {
+                        foodDetailsMap.value[res.id] = res.data
+                    }
+                })
+            }
+            */
 
             // 캘린더 스탬프 상태 업데이트
             buildCalendarStatus()
@@ -213,12 +423,23 @@ export const useLogStore = defineStore('log', () => {
 
     /**
      * 유산소 운동 기록 추가
-     * @param {Object} logData - { cardioExerciseId, durationMinutes, burnedKcal }
+     * 운동 시간(분)만 입력받아 칼로리를 자동 계산함
+     * @param {Object} logData - { cardioExerciseId, durationMinutes } (burnedKcal은 자동 계산)
      */
     const addRunningLog = async (logData) => {
         try {
+            // 칼로리 자동 계산
+            let burnedKcal = 0
+            if (logData.cardioExerciseId && logData.durationMinutes) {
+                const exercise = cardioExercises.value.find(e => e.cardioExerciseId === logData.cardioExerciseId)
+                const mets = exercise ? (exercise.mets || 5) : 5 // 기본값 5
+                const gender = authStore.user?.gender || 'MALE'
+                burnedKcal = calculateCardioCalories(gender, mets, logData.durationMinutes)
+            }
+
             await logApi.addRunningLog({
                 ...logData,
+                burnedKcal, // 계산된 칼로리 전송
                 date: selectedDateString.value
             })
             await fetchMonthlyLogs()
@@ -229,6 +450,7 @@ export const useLogStore = defineStore('log', () => {
             return false
         }
     }
+
     /**
      * 식단 기록 수정
      */
@@ -270,8 +492,20 @@ export const useLogStore = defineStore('log', () => {
      */
     const updateRunningLog = async (cardioLogId, logData) => {
         try {
+            // 칼로리 자동 계산 (수정 시에도 시간/종목 변경 시 재계산)
+            let burnedKcal = logData.burnedKcal // 기존 값 유지 우선 (만약 넘어왔다면)
+
+            // 만약 시간이 변경되었거나 명시적으로 계산이 필요한 경우 로직 수행 가능
+            if (logData.cardioExerciseId && logData.durationMinutes) {
+                const exercise = cardioExercises.value.find(e => e.cardioExerciseId === logData.cardioExerciseId)
+                const mets = exercise ? (exercise.mets || 5) : 5
+                const gender = authStore.user?.gender || 'MALE'
+                burnedKcal = calculateCardioCalories(gender, mets, logData.durationMinutes)
+            }
+
             await logApi.updateRunningLog(cardioLogId, {
                 ...logData,
+                burnedKcal,
                 date: selectedDateString.value
             })
             await fetchMonthlyLogs()
@@ -347,6 +581,13 @@ export const useLogStore = defineStore('log', () => {
         monthlyTotalCaloriesIntake,
         monthlyTotalVolume,
         monthlyTotalCaloriesBurned,
+        monthlyTotalNutrients,
+        dietDaysCount,
+        strStat,
+        dexStat,
+        dailyDietStats,
+        dailyWorkoutStats,
+        dailyRunningStats,
         // 동작
         setSelectedDate,
         fetchMonthlyLogs,

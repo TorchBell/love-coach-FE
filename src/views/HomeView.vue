@@ -3,6 +3,7 @@ import { ref, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 import CharacterDialog from '../components/CharacterDialog.vue'
+import NowLoading from '../components/NowLoading.vue'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useNpcStore } from '@/stores/npcStore'
@@ -25,7 +26,10 @@ const loginForm = ref({
 })
 
 
+
 const isLoading = ref(false)
+const showLoading = ref(false)
+const loadingText = ref('Connecting...')
 const errorMessage = ref('')
 
 const handleLogin = async () => {
@@ -34,19 +38,34 @@ const handleLogin = async () => {
     return
   }
 
+  // 로딩 시작
   isLoading.value = true
+  showLoading.value = true
+  loadingText.value = "Connecting..."
   errorMessage.value = ''
 
-  const success = await authStore.login(loginForm.value)
-  
-  isLoading.value = false
-  if (!success) {
-    errorMessage.value = '로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.'
-  } else {
-    // 로그인 성공
-    // if (authStore.user?.name) {
-    //   dialogText.value = DIALOG_TEXT.GREETING_USER(authStore.user.name)
-    // }
+  try {
+      const success = await authStore.login(loginForm.value)
+      
+      if (!success) {
+        // 실패 시 즉시 종료
+        isLoading.value = false
+        showLoading.value = false
+        errorMessage.value = '로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.'
+      } else {
+        // 성공 시 연출 (1.5초 대기)
+        loadingText.value = "Welcome Back!"
+        setTimeout(() => {
+            isLoading.value = false
+            showLoading.value = false
+            // 로그인 성공 후 페이지 이동 등 추가 로직이 있다면 여기서 처리
+            // 현재 구조에선 반응형으로 v-else nav가 표시됨
+        }, 1500)
+      }
+  } catch (e) {
+      isLoading.value = false
+      showLoading.value = false
+      errorMessage.value = '로그인 중 오류가 발생했습니다.'
   }
 }
 
@@ -268,11 +287,11 @@ const handleChoice = (choiceId) => {
       @openChat="openChatWindow"
     />
     
-
-    
     <div class="absolute top-10 right-10 w-64 h-64 bg-pastel-yellow/10 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
     <div class="absolute bottom-10 left-10 w-80 h-80 bg-pastel-blue/10 rounded-full blur-3xl animate-pulse pointer-events-none" style="animation-delay: 1.5s;"></div>
 
+    <!-- 로딩 컴포넌트 -->
+    <NowLoading :is-visible="showLoading" :text="loadingText" />
 
   </div>
 </template>

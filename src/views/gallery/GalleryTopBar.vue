@@ -41,8 +41,8 @@ const filters = [
 
             <!-- Content -->
             <div class="relative z-10 w-full h-full flex flex-col justify-center items-center text-white pb-1">
-                <span class="text-[10px] font-bold tracking-widest uppercase opacity-70 mb-1">{{ filter.sub }}</span>
-                <h2 class="text-2xl font-serif italic font-black leading-tight">{{ filter.label }}</h2>
+                <span class="text-[8px] md:text-[10px] lg:text-xs font-bold tracking-widest uppercase opacity-70 mb-1">{{ filter.sub }}</span>
+                <h2 class="text-lg md:text-xl lg:text-2xl xl:text-3xl font-serif italic font-black leading-tight">{{ filter.label }}</h2>
                 
                 <!-- Active Indicator -->
                 <div class="mt-2 h-0.5 bg-white transition-all duration-500"

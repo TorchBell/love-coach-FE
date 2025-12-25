@@ -9,6 +9,8 @@ import { CHAR_IMAGES, UI_IMAGES } from '@/assets/dummy/index.js'
 import MainLayout from '../layouts/MainLayout.vue'
 import DeleteAccountModal from '../components/DeleteAccountModal.vue'
 import ToastNotification from '../components/ToastNotification.vue'
+import userDefaultIcon from '@/assets/icons/user-default.png'
+import userTokenIcon from '@/assets/icons/user-token.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -181,8 +183,14 @@ const notifications = ref({
 })
 
 const appSettings = ref({
-    loadingScreen: true,
+    loadingScreen: localStorage.getItem('love_coach_loading_screen') !== 'false', // Default true
     completionAnim: true
+})
+
+// 설정 변경 감지 및 저장
+watch(() => appSettings.value.loadingScreen, (newVal) => {
+    localStorage.setItem('love_coach_loading_screen', newVal)
+    showToast(`로딩 애니메이션이 ${newVal ? '켜졌습니다' : '꺼졌습니다'}.`, 'success')
 })
 
 // 메뉴 목록
@@ -898,16 +906,18 @@ const handleDeleteConfirm = async () => {
         
         <!-- Profile Header -->
         <div class="p-8 flex flex-col items-center border-b border-gray-100">
-            <div class="relative group cursor-pointer">
-                <div class="w-28 h-28 rounded-full overflow-hidden border-[6px] border-white shadow-lg mb-4 ring-2 ring-gray-100 transition-transform group-hover:scale-105">
-                     <img :src="CHAR_IMAGES.tomai" alt="Profile" class="w-full h-full object-cover" />
+            <!-- <div class="relative group cursor-pointer"> -->
+            <div class="relative group">
+                <!-- <div class="w-28 h-28 rounded-full overflow-hidden border-[6px] border-white shadow-lg mb-4 ring-2 ring-gray-100 transition-transform group-hover:scale-105"> -->
+                <div class="w-28 h-28 rounded-full overflow-hidden border-[6px] border-white shadow-lg mb-4 ring-2 ring-gray-100">
+                     <img :src="userDefaultIcon" alt="Profile" class="w-full h-full object-cover" />
                 </div>
-                <div class="absolute bottom-2 right-2 bg-gray-900 text-white p-1.5 rounded-full shadow-md text-xs group-hover:bg-pastel-red transition-colors">
+                <!-- <div class="absolute bottom-2 right-2 bg-gray-900 text-white p-1.5 rounded-full shadow-md text-xs group-hover:bg-pastel-red transition-colors">
                     ✏️
-                </div>
+                </div> -->
             </div>
             
-            <h2 class="text-xl font-black text-gray-800 mb-1">{{ authStore.user?.name || '사용자' }}</h2>
+            <h2 class="text-xl font-black text-gray-800 mb-1">{{ authStore.user?.nickname || authStore.user?.name || '사용자' }}</h2>
             <p class="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">{{ authStore.user?.email || 'user@example.com' }}</p>
             
             <!-- User Details -->
@@ -921,8 +931,11 @@ const handleDeleteConfirm = async () => {
                     <span class="text-gray-700 font-bold">{{ authStore.user?.birthdate || '미설정' }}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm pt-3 border-t border-gray-100 mt-2">
-                     <span class="text-gray-400 font-bold">크레딧</span>
-                     <span class="text-pastel-red font-black">{{ credit }} 💎</span>
+                     <span class="text-gray-400 font-bold">헬스토큰</span>
+                     <div class="flex items-center gap-1">
+                        <img :src="userTokenIcon" class="w-5 h-5" />
+                        <span class="text-pastel-red font-black">{{ credit }}</span>
+                     </div>
                 </div>
             </div>
         </div>
@@ -943,7 +956,10 @@ const handleDeleteConfirm = async () => {
         </div>
 
         <!-- Logout / Delete -->
-        <div class="p-6 border-t border-gray-100 bg-gray-50">
+        <div class="p-6 border-t border-gray-100 bg-gray-50 space-y-3">
+             <button @click="authStore.logout(); router.push('/home')" class="w-full py-3 rounded-xl border border-gray-200 text-gray-500 text-xs font-bold hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                로그아웃
+             </button>
              <button @click="handleDeleteAccount" class="w-full py-3 rounded-xl border border-red-100 text-red-400 text-xs font-bold hover:bg-red-50 hover:text-red-500 transition-colors">
                 회원 탈퇴
              </button>

@@ -216,10 +216,10 @@ const getAchievementImage = (key) => {
             <!-- Header -->
             <div class="flex items-end justify-between mb-6 flex-shrink-0">
                 <div>
-                   <h1 class="text-4xl font-black text-gray-800 flex items-center gap-3">
-                       <span>🏆</span> HALL OF FAME
+                   <h1 class="text-2xl md:text-3xl lg:text-4xl font-black text-gray-800 flex items-center gap-3">
+                      ACHIEVEMENT COLLECTION
                    </h1>
-                   <p class="text-gray-500 text-sm font-bold tracking-widest mt-2 ml-1 uppercase">Achievement Collection</p>
+                   <p class="text-gray-500 text-sm font-bold tracking-widest mt-2 ml-1 uppercase">업적을 해금하고 보상을 획득하세요!</p>
                 </div>
             </div>
 
@@ -238,7 +238,7 @@ const getAchievementImage = (key) => {
                        :class="activeTab === tab.id ? 'grayscale-0 border-pastel-red' : 'border-gray-200'">
                     <img :src="tab.image" class="w-full h-full object-cover" />
                   </div>
-                  <span class="font-bold text-lg text-gray-700" :class="{ 'text-black': activeTab === tab.id }">{{ tab.name }}</span>
+                  <span class="font-bold text-sm md:text-lg text-gray-700" :class="{ 'text-black': activeTab === tab.id }">{{ tab.name }}</span>
                 </button>
             </div>
 
@@ -246,7 +246,7 @@ const getAchievementImage = (key) => {
             <div class="flex-1 bg-white rounded-[2.5rem] p-8 shadow-xl border border-gray-100 flex flex-col overflow-hidden relative">
                 <!-- Inner Header -->
                 <div class="flex justify-between items-center mb-6 flex-shrink-0">
-                    <h2 class="text-2xl font-black flex items-center gap-3" :class="characterAchievements[activeTab].color">
+                    <h2 class="text-xl md:text-2xl font-black flex items-center gap-3" :class="characterAchievements[activeTab].color">
                         {{ characterAchievements[activeTab].name }}
                         <span class="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-bold shadow-sm">{{ characterAchievements[activeTab].completed }}/{{ characterAchievements[activeTab].total }}</span>
                     </h2>
@@ -289,12 +289,12 @@ const getAchievementImage = (key) => {
                         <!-- Text Info -->
                         <div class="flex-1 min-w-0 flex flex-col justify-center h-full gap-1">
                             <!-- Title -->
-                            <h3 class="font-black text-gray-800 text-lg leading-tight truncate">
+                            <h3 class="font-black text-gray-800 text-sm md:text-base lg:text-lg leading-tight truncate">
                                 {{ item.title }}
                             </h3>
                             
                             <!-- Description -->
-                            <p class="text-gray-600 text-base font-medium leading-snug line-clamp-2">
+                            <p class="text-gray-600 text-xs md:text-sm lg:text-base font-medium leading-snug line-clamp-2">
                                 {{ item.description }}
                             </p>
                             

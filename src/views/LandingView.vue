@@ -1,11 +1,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+
 import { useRouter } from 'vue-router'
 import { UI_IMAGES } from '@/assets/dummy/index.js'
+import NowLoading from '../components/NowLoading.vue'
 
 const router = useRouter()
 const isFading = ref(false)
 const showDoor = ref(false)
+const showVideo = ref(false)
+const videoRef = ref(null)
 const cursorUrl = ref('auto')
 
 onMounted(() => {
@@ -22,10 +26,28 @@ const handleKnock = () => {
   // 흰색 페이드 아웃 시작
   isFading.value = true
   
-  // 페이드 완료 후 이동
-  setTimeout(() => {
-    router.push('/home')
-  }, 1200)
+  // 로딩 설정 확인
+  const useLoading = localStorage.getItem('love_coach_loading_screen') !== 'false'
+
+  if (useLoading) {
+    // 1. 영상 재생 모드
+    setTimeout(() => {
+        showVideo.value = true
+        // 컴포넌트 내부에서 autoplay
+    }, 1000) // 페이드 효과(1.2s)와 얼추 맞춤
+
+
+    // 4초 후 이동
+    setTimeout(() => {
+        router.push('/home')
+    }, 5000) // 1s (Fade) + 4s (Video)
+
+  } else {
+    // 2. 즉시 이동 모드 (기존 로직)
+    setTimeout(() => {
+        router.push('/home')
+    }, 1200)
+  }
 }
 </script>
 
@@ -38,9 +60,12 @@ const handleKnock = () => {
     <Transition name="fade-white">
       <div 
         v-if="isFading" 
-        class="absolute inset-0 bg-white z-50"
+        class="absolute inset-0 bg-white z-40"
       ></div>
     </Transition>
+
+    <!-- 로딩 컴포넌트 -->
+    <NowLoading :is-visible="showVideo" text="Entering..." />
 
     <div class="text-center z-10">
       <h1 class="text-5xl font-bold text-soft-black mb-12 font-pixel animate-pulse drop-shadow-lg">

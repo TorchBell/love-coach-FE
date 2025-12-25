@@ -84,6 +84,19 @@ const isToday = (day) => {
     } catch (e) { return false }
 }
 
+const isFuture = (day) => {
+    if (!day) return false
+    try {
+        const checkDate = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), day)
+        const today = new Date()
+        // 시간 정보 제거 후 날짜만 비교
+        checkDate.setHours(0, 0, 0, 0)
+        today.setHours(0, 0, 0, 0)
+        
+        return checkDate > today
+    } catch (e) { return false }
+}
+
 const selectDate = (day) => {
   if (!day) return
   const newDate = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), day)
@@ -167,12 +180,12 @@ const goToToday = () => {
             <!-- 날짜 셀 -->
             <div 
                 v-if="item.date"
-                @click="selectDate(item.date)"
-                class="absolute inset-0 rounded-2xl border-2 transition-all duration-200 cursor-pointer overflow-hidden"
+                @click="!isFuture(item.date) && selectDate(item.date)"
+                class="absolute inset-0 rounded-2xl border-2 transition-all duration-200 overflow-hidden"
                 :class="[
                   isSelected(item.date) 
                     ? 'border-pastel-red bg-pastel-red/5 z-10' 
-                    : 'border-transparent hover:bg-gray-50 hover:border-gray-200',
+                    : (isFuture(item.date) ? 'cursor-not-allowed opacity-30 bg-gray-50' : 'cursor-pointer border-transparent hover:bg-gray-50 hover:border-gray-200'),
                   isToday(item.date) ? 'ring-2 ring-pastel-blue/30' : ''
                 ]"
             >

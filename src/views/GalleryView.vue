@@ -5,13 +5,27 @@ import GalleryTopBar from './gallery/GalleryTopBar.vue'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 import { useAuthStore } from '@/stores/authStore'
 import { useGalleryStore } from '@/stores/galleryStore'
+import userTokenIcon from '@/assets/icons/user-token.png'
 
 const authStore = useAuthStore()
 const galleryStore = useGalleryStore()
 
 // --- 데이터 로딩 (로컬 이미지 동적 로드 & 매핑) ---
 const localImages = import.meta.glob('@/assets/gallery/**/*.{png,jpg,jpeg,webp}', { eager: true })
+const localVideos = import.meta.glob('@/assets/gallery/sidecut/*.mp4', { eager: true })
+const localTexts = import.meta.glob('@/assets/gallery/sidecut/*.txt', { query: '?raw', eager: true })
+
 const localAssetPaths = Object.keys(localImages)
+const localVideoPaths = Object.keys(localVideos)
+const localTextPaths = Object.keys(localTexts)
+
+// 텍스트 파일 내용 가져오기 & 닉네임 치환
+const getProccessedText = (rawText) => {
+    if (!rawText) return ''
+    const nickname = authStore.user?.nickname || '사용자'
+    // {{}} 또는 {{사용자}} 등을 닉네임으로 치환
+    return rawText.replace(/{{.*?}}/g, nickname)
+}
 
 const findLocalImage = (dbPath) => {
     if (!dbPath) return null
@@ -32,9 +46,60 @@ const findLocalImage = (dbPath) => {
     return null
 }
 
+const findLocalSidecut = (dbUrl) => {
+    // 1. DB URL이 있으면 해당 파일명으로 매핑 시도
+    let video = null
+    let text = ''
+    let isDummy = false
+
+    console.log('[Gallery Debug] DB URL:', dbUrl)
+    console.log('[Gallery Debug] Local Video Paths:', localVideoPaths)
+
+    if (dbUrl) {
+        // DB URL에서 파일명 추출 (예: /gallery/sidecut/toma5.mp4 -> toma5)
+        const filename = dbUrl.split('/').pop().split('.')[0]
+        console.log('[Gallery Debug] Extracted filename:', filename)
+        
+        // 비디오 찾기 (파일명으로 검색)
+        const vidPath = localVideoPaths.find(p => {
+            const localFilename = p.split('/').pop().split('.')[0]
+            return localFilename === filename
+        })
+        console.log('[Gallery Debug] Matched video path:', vidPath)
+        
+        if (vidPath) {
+            video = localVideos[vidPath].default || localVideos[vidPath]
+        }
+
+        // 같은 이름의 텍스트 파일 찾기
+        const txtPath = localTextPaths.find(p => {
+            const localFilename = p.split('/').pop().split('.')[0]
+            return localFilename === filename
+        })
+        if (txtPath) {
+            text = localTexts[txtPath].default || localTexts[txtPath]
+        }
+    }
+
+    // 2. 비디오가 없으면 임시 데이터
+    if (!video) {
+        isDummy = true
+        const dummyName = 'toma6'
+        const vidPath = localVideoPaths.find(p => p.includes(dummyName))
+        const txtPath = localTextPaths.find(p => p.includes(dummyName))
+        
+        if (vidPath) video = localVideos[vidPath].default || localVideos[vidPath]
+        if (txtPath) text = localTexts[txtPath].default || localTexts[txtPath]
+    }
+
+    console.log('[Gallery Debug] Result - isDummy:', isDummy, 'hasVideo:', !!video)
+    return { video, text, isDummy }
+}
+
 // 초기 데이터 로드
 onMounted(async () => {
     await galleryStore.fetchGalleries()
+    if (authStore.user) await authStore.fetchUserProfile() // 크레딧 정보 갱신
 })
 
 const galleryImages = computed(() => {
@@ -65,16 +130,25 @@ const galleryImages = computed(() => {
 
         // 이미지 매핑
         const mainImg = findLocalImage(item.imageUrl || item.image_url) || CHAR_IMAGES[char]
-        const sideImg = findLocalImage(item.bCutImageUrl || item.b_cut_image_url) // 없을 수 있음
+        
+        // Sidecut 매핑 (비디오/텍스트)
+        const sidecutData = findLocalSidecut(item.bCutImageUrl || item.b_cut_image_url)
+        
+        const isDummy = sidecutData.isDummy
+        
+        // 가격 정책: DB에 URL이 있으면(isDummy=false) 500, 없으면(임시) 2222
+        // 단, 특정 ID(DB에 URL이 추가된 belle/2 등)는 isDummy가 false가 되므로 500으로 자동 처리됨.
+        const price = isDummy ? 2222 : 500
 
         return {
             id: item.galleryId || item.gallery_id || `local-${index}`,
             title: item.title || `${char.toUpperCase()} Moment`,
             image: mainImg,
-            sidecut: sideImg, // 뒷면 이미지
+            sidecutVideo: sidecutData.video,
+            sidecutText: sidecutData.text,
             character: char,
             unlocked: item.isUnlocked || item.unlocked || false, // DB 해금 여부
-            unlockCost: 500, // 기본값 (DB에 없음)
+            unlockCost: price,
             unlockCondition: item.unlockCondition || item.unlock_condition,
             createdAt: item.createdAt || new Date()
         }
@@ -99,10 +173,64 @@ const showFlipped = ref(false) // Moved up here
 const debounceTimer = ref(null)
 
 const toggleFlip = () => {
-    if (previewImage.value?.unlocked) {
-        showFlipped.value = !showFlipped.value
+    // 잠금 여부와 관계없이 뒤집기 (뒷면에서 해금 UI 제공)
+    showFlipped.value = !showFlipped.value
+}
+
+// --- Unlock Confirmation Modal Logic ---
+const showConfirmModal = ref(false)
+const unlockTargetImage = ref(null)
+const showComingSoonModal = ref(false)
+
+const openUnlockModal = (image) => {
+    if (!authStore.user) {
+        alert('로그인이 필요합니다.')
+        return
+    }
+    
+    // isDummy 체크: b_cut_image_url이 없으면 "준비중" 모달 표시
+    if (image.unlockCost === 2222) {
+        // 2222은 isDummy일 때만 설정되는 가격
+        showComingSoonModal.value = true
+        return
+    }
+    
+    if ((authStore.user.credit || 0) < image.unlockCost) {
+        alert('크레딧이 부족합니다.')
+        return
+    }
+    unlockTargetImage.value = image
+    showConfirmModal.value = true
+}
+
+const closeComingSoonModal = () => {
+    showComingSoonModal.value = false
+}
+
+const closeUnlockModal = () => {
+    showConfirmModal.value = false
+    unlockTargetImage.value = null
+}
+
+const confirmUnlock = async () => {
+    if (!unlockTargetImage.value) return
+    
+    const image = unlockTargetImage.value
+    const success = await galleryStore.unlockGallery(image.id)
+    
+    if (success) {
+        // 성공 시 크레딧 갱신
+        await authStore.fetchUserProfile()
+        // 자동으로 뒤집어서 내용 보여주기 (이미 뒤집혀 있으므로 해금된 화면으로 전환됨)
+        showFlipped.value = true
+        closeUnlockModal()
+    } else {
+        alert('해금에 실패했습니다.')
+        closeUnlockModal()
     }
 }
+
+// (Function replaced by openUnlockModal and confirmUnlock)
 
 
 // --- Functions Defined Before Watcher ---
@@ -171,24 +299,7 @@ const toggleViewMode = () => {
 }
 
 // --- Unlock Logic ---
-const handleUnlock = async (image) => {
-  const userTokens = authStore.user?.credit || 0
-  if (userTokens < image.unlockCost) {
-    alert('토큰이 부족합니다!')
-    return
-  }
-  if (!confirm(`${image.unlockCost} 토큰을 사용하여 해금하시겠습니까?`)) return
-  
-  const result = await galleryStore.unlockGallery(image.id)
-  
-  // result가 성공이면 store가 이미 refresh됨 -> galleryImages computed 업데이트됨 -> UI 반영
-  if (result) {
-      alert('🎉 해금되었습니다!')
-      await authStore.fetchUserProfile()
-  } else {
-      // 에러 메시지는 store에서 처리 혹은 여기서 추가 처리
-  }
-}
+// (중복 제거됨)
 
 onUnmounted(() => {
     if (debounceTimer) clearTimeout(debounceTimer)
@@ -236,10 +347,47 @@ onUnmounted(() => {
                             </div>
 
                             <!-- 뒷면 (Sidecut) - 해금 시에만 접근 가능 -->
-                            <div class="absolute inset-0 backface-hidden rotate-y-180 flex items-center justify-center bg-white rounded-2xl shadow-inner">
-                                <img :src="previewImage.sidecut || previewImage.image" class="max-w-full max-h-full object-contain drop-shadow-2xl rounded-lg" alt="Sidecut" />
-                                <div class="absolute top-6 left-6 bg-pastel-red text-white px-5 py-2 rounded-full text-sm font-bold shadow-xl animate-pulse flex items-center gap-2">
-                                    <span>✨</span> SECRET CUT
+                            <!-- 뒷면 (Sidecut) - 해금 시에만 접근 가능 -->
+                            <div class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center bg-white rounded-2xl shadow-inner overflow-hidden">
+                                <!-- 해금된 상태: 비디오 + 텍스트 -->
+                                <div v-if="previewImage.unlocked" class="flex flex-col w-full h-full">
+                                    <div class="w-full aspect-video bg-black flex items-center justify-center relative flex-shrink-0">
+                                        <video 
+                                            v-if="previewImage.sidecutVideo"
+                                            :src="previewImage.sidecutVideo"
+                                            controls
+                                            autoplay
+                                            class="w-full h-full object-contain"
+                                        ></video>
+                                        <div v-else class="text-white text-sm">비디오를 찾을 수 없습니다.</div>
+                                    </div>
+                                    
+                                    <div class="flex-1 p-6 flex items-center justify-center bg-gray-50 overflow-y-auto">
+                                        <p class="text-gray-700 text-lg leading-relaxed font-medium whitespace-pre-wrap text-center font-handwriting">
+                                            {{ getProccessedText(previewImage.sidecutText) }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- 잠긴 상태: 해금 UI -->
+                                <div v-else class="w-full h-full flex flex-col items-center justify-center p-8 bg-gray-900 text-white space-y-6">
+                                    <div class="text-center">
+                                        <h3 class="text-xl font-bold mb-2">시크릿 컷 잠김</h3>
+                                        <p class="text-gray-400 text-sm">해금하여 숨겨진 이야기를 확인하세요.</p>
+                                    </div>
+                                    
+                                    <div class="bg-gray-800 rounded-xl px-6 py-4 flex items-center gap-3">
+                                        <img :src="userTokenIcon" class="w-6 h-6 object-contain" />
+                                        <span class="text-yellow-400 font-bold text-xl">{{ previewImage.unlockCost }}</span>
+                                        <span class="text-gray-400 text-sm">크레딧 필요</span>
+                                    </div>
+
+                                    <button 
+                                        @click.stop="openUnlockModal(previewImage)"
+                                        class="w-full py-4 bg-gradient-to-r from-pastel-red to-pink-500 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        <span>해금하기</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -254,20 +402,22 @@ onUnmounted(() => {
                     <!-- 하단 정보 및 액션 바 -->
                     <div class="h-20 bg-white border-t border-gray-100 px-8 flex items-center justify-between flex-shrink-0 z-20">
                         <div v-if="previewImage">
-                            <h3 class="text-2xl font-serif font-black text-gray-900 mb-1 italic">{{ previewImage.title }}</h3>
+                            <h3 class="text-xl md:text-2xl lg:text-3xl font-sans font-bold text-gray-800 mb-1">{{ previewImage.title }}</h3>
                         </div>
                         
                         <div v-if="previewImage" class="flex gap-3">
-                            <!-- 해금 버튼 (잠겨있을 때) -->
-                            <button v-if="!previewImage.unlocked" @click="handleUnlock(previewImage)" class="px-6 py-2 bg-gray-900 text-white rounded-full font-bold hover:bg-gray-800 transition-all shadow-lg hover:scale-105 hover:shadow-xl flex items-center gap-2">
-                                <span>🔓</span>
-                                <span>Unlock Flip ({{ previewImage.unlockCost }})</span>
-                            </button>
-                            
-                            <!-- 뒤집기 버튼 (해금 완료 시) -->
-                            <button v-else @click="toggleFlip" class="px-6 py-2 rounded-full font-bold transition-all shadow-md hover:scale-105 flex items-center gap-2"
-                                :class="showFlipped ? 'bg-gray-100 text-gray-600 border border-gray-200' : 'bg-pastel-red text-white hover:bg-red-400 shadow-red-200'">
-                                <span>{{ showFlipped ? '↩️ Return' : '✨ See Secret' }}</span>
+                            <!-- 뒤집기 버튼 -->
+                            <button @click="toggleFlip" class="px-4 py-1.5 md:px-6 md:py-2 rounded-full font-bold transition-all shadow-md hover:scale-105 flex items-center gap-2 text-xs md:text-sm lg:text-base bg-pastel-red text-white hover:bg-red-400 shadow-red-200">
+                                <template v-if="showFlipped">
+                                    <span>Return</span>
+                                </template>
+                                <template v-else-if="previewImage.unlocked">
+                                    <span>See Secret</span>
+                                </template>
+                                <template v-else>
+                                    <img :src="userTokenIcon" class="w-5 h-5 object-contain" />
+                                    <span>{{ previewImage.unlockCost }}</span>
+                                </template>
                             </button>
                         </div>
                     </div>
@@ -333,7 +483,7 @@ onUnmounted(() => {
              <div class="flex-shrink-0 w-full mb-6">
                  <!-- Header with Toggle Button -->
                 <div class="flex justify-between items-center mb-4">
-                     <h2 class="text-3xl font-serif font-black text-gray-900 italic tracking-tight flex items-center gap-2">
+                     <h2 class="text-3xl font-sans font-bold text-gray-900 tracking-tight flex items-center gap-2">
                         <span>🧱</span> Gallery Grid
                     </h2>
                     <button 
@@ -357,9 +507,57 @@ onUnmounted(() => {
                     >
                         <img :src="img.image" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy"/>
                         
+                        <!-- Back (Hidden Info / Unlock) -->
+            <div class="absolute inset-0 bg-white rounded-2xl shadow-xl backface-hidden rotate-y-180 flex flex-col overflow-hidden">
+                <!-- 해금된 상태: 비디오 + 텍스트 -->
+                <div v-if="previewImage.unlocked" class="flex flex-col h-full">
+                    <div class="w-full aspect-video bg-black flex items-center justify-center relative">
+                         <!-- 비디오 플레이어 -->
+                         <video 
+                            v-if="previewImage.sidecutVideo"
+                            :src="previewImage.sidecutVideo"
+                            controls
+                            autoplay
+                            class="w-full h-full object-contain"
+                         ></video>
+                         <div v-else class="text-white text-sm">비디오를 찾을 수 없습니다.</div>
+                    </div>
+                    
+                    <div class="flex-1 p-6 flex items-center justify-center bg-gray-50 overflow-y-auto">
+                        <p class="text-gray-700 text-lg leading-relaxed font-medium whitespace-pre-wrap text-center font-handwriting">
+                            {{ getProccessedText(previewImage.sidecutText) }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 잠긴 상태: 해금 UI -->
+                <div v-else class="flex-1 flex flex-col items-center justify-center p-8 bg-gray-900 text-white space-y-6">
+                     <div class="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-2">
+                        <span class="text-3xl">🔒</span>
+                     </div>
+                     <div class="text-center">
+                         <h3 class="text-xl font-bold mb-2">시크릿 컷 잠김</h3>
+                         <p class="text-gray-400 text-sm">해금하여 숨겨진 이야기를 확인하세요.</p>
+                     </div>
+                     
+                     <div class="bg-gray-800 rounded-xl px-6 py-4 flex items-center gap-3">
+                        <span class="text-yellow-400 font-bold text-xl">🪙 {{ previewImage.unlockCost }}</span>
+                        <span class="text-gray-400 text-sm">크레딧 필요</span>
+                     </div>
+
+                     <button 
+                        @click.stop="openUnlockModal(previewImage)"
+                        class="w-full py-4 bg-gradient-to-r from-pastel-red to-pink-500 rounded-xl font-bold text-lg hover:brightness-110 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                     >
+                        <span>해금하기</span>
+                     </button>
+                     
+                     <p v-if="previewImage.isDummy" class="text-xs text-gray-500 mt-4">* 임시 데이터 상품입니다 (2222C)</p>
+                </div>
+            </div>
                         <!-- Hover Info -->
                         <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4 text-center">
-                            <h4 class="font-serif font-black text-xl mb-1 italic">{{ img.title }}</h4>
+                            <h4 class="font-sans font-bold text-2xl mb-1">{{ img.title }}</h4>
                             <span class="text-[10px] tracking-widest border border-white/50 px-3 py-1 rounded-full uppercase">{{ img.unlocked ? 'Unlocked' : 'Flip Locked' }}</span>
                         </div>
 
@@ -385,19 +583,19 @@ onUnmounted(() => {
                  
                  <!-- 사이드바 (정보) -->
                  <div class="w-96 bg-white/10 backdrop-blur-lg border border-white/10 rounded-[2rem] p-8 h-auto max-h-[80vh] flex flex-col justify-center text-white shadow-2xl">
-                     <h2 class="text-4xl font-serif font-black mb-2 italic">{{ modalImage.title }}</h2>
-                     <p class="text-gray-400 mb-10 font-medium tracking-widest text-sm uppercase">Captured Memory • {{ new Date(modalImage.createdAt).toLocaleDateString() }}</p>
+                     <h2 class="text-3xl md:text-4xl lg:text-5xl font-sans font-bold mb-2">{{ modalImage.title }}</h2>
+                     <p class="text-gray-400 mb-6 lg:mb-10 font-medium tracking-widest text-xs lg:text-sm uppercase">Captured Memory • {{ new Date(modalImage.createdAt).toLocaleDateString() }}</p>
                      
                      <div class="mt-auto space-y-4">
                          <div v-if="!modalImage.unlocked" class="bg-black/40 rounded-xl p-4 mb-4 border border-white/5">
-                            <p class="text-sm text-gray-300 mb-1">Unlock Cost</p>
+                            <p class="text-xs lg:text-sm text-gray-300 mb-1">Unlock Cost</p>
                             <div class="flex items-center gap-2">
-                                <span class="text-2xl font-bold text-pastel-red">{{ modalImage.unlockCost }}</span>
-                                <span class="text-sm text-gray-400">Tokens required</span>
+                                <span class="text-xl lg:text-2xl font-bold text-pastel-red">{{ modalImage.unlockCost }}</span>
+                                <span class="text-xs lg:text-sm text-gray-400">Tokens required</span>
                             </div>
                          </div>
 
-                         <button v-if="!modalImage.unlocked" @click="handleUnlock(modalImage)" class="w-full py-4 bg-white text-black rounded-xl font-black hover:bg-gray-200 transition-transform active:scale-95 shadow-lg flex items-center justify-center gap-2">
+                         <button v-if="!modalImage.unlocked" @click="openUnlockModal(modalImage)" class="w-full py-4 bg-white text-black rounded-xl font-black hover:bg-gray-200 transition-transform active:scale-95 shadow-lg flex items-center justify-center gap-2">
                              <span>🔓</span> Unlock Picture
                          </button>
                          <button @click="closeModal" class="w-full py-4 bg-transparent border border-white/20 text-white rounded-xl font-bold hover:bg-white/10 transition-colors">
@@ -405,6 +603,47 @@ onUnmounted(() => {
                          </button>
                      </div>
                  </div>
+            </div>
+        </div>
+    </Teleport>
+
+    <!-- Unlock Confirmation Modal -->
+    <Teleport to="body">
+        <div v-if="showConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" @click.self="closeUnlockModal">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl transform transition-all scale-100">
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">시크릿 컷 해금</h3>
+                <p class="text-gray-500 mb-6">숨겨진 이야기를 확인하시겠습니까?</p>
+                
+                <div class="bg-gray-50 rounded-2xl p-6 mb-8 flex items-center justify-between border border-gray-100">
+                    <span class="text-gray-600 font-medium">필요 크레딧</span>
+                    <div class="flex items-center gap-2">
+                        <img :src="userTokenIcon" class="w-6 h-6 object-contain" />
+                        <span class="text-2xl font-black text-pastel-red">{{ unlockTargetImage?.unlockCost }}</span>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button @click="closeUnlockModal" class="flex-1 py-4 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-colors">
+                        취소
+                    </button>
+                    <button @click="confirmUnlock" class="flex-1 py-4 bg-pastel-red text-white rounded-xl font-bold hover:brightness-110 shadow-lg shadow-red-200 transition-all active:scale-95">
+                        해금하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
+
+    <!-- Coming Soon Modal -->
+    <Teleport to="body">
+        <div v-if="showComingSoonModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" @click.self="closeComingSoonModal">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
+                <div class="text-6xl mb-4">🛠️</div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">아직 준비중이에요!</h3>
+                <p class="text-gray-500 mb-6">다음 패치에서 꼭 보여드릴게요 💖</p>
+                <button @click="closeComingSoonModal" class="w-full py-4 bg-pastel-red text-white rounded-xl font-bold hover:brightness-110 transition-all">
+                    알겠어요!
+                </button>
             </div>
         </div>
     </Teleport>

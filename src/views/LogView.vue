@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import MainLayout from '../layouts/MainLayout.vue'
 import DeleteConfirmModal from '../components/DeleteConfirmModal.vue'
 import LogSidebar from './log/LogSidebar.vue'
@@ -40,12 +40,26 @@ watch(() => route.query.tab, (newTab) => {
   }
 })
 
+const hideSidebar = ref(false)
+
+const handleResize = () => {
+    // 1024px (lg) 미만이면 사이드바 숨김 (상단 배너 사용)
+    hideSidebar.value = window.innerWidth < 1024
+}
+
 onMounted(async () => {
+  handleResize()
+  window.addEventListener('resize', handleResize)
+
   if (route.query.tab) {
     uiStore.setActiveTab(route.query.tab)
   }
   await logStore.fetchExercises()
   await logStore.fetchMonthlyLogs()
+})
+
+onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
 })
 
 // --- 기존 폼 상태 및 CRUD 로직 유지 ---
@@ -253,11 +267,11 @@ const cancelDeleteModal = () => {
 </script>
 
 <template>
-  <MainLayout :is-full-width="true">
+  <MainLayout :is-full-width="true" :hide-sidebar="hideSidebar">
     
     <!-- 좌측 사이드바 (PC 전용) -->
     <template #left-sidebar>
-      <div class="hidden xl:block h-full">
+      <div class="hidden lg:block h-full">
         <LogSidebar 
             :active-tab="activeTab" 
             @update:activeTab="setActiveTab"
@@ -268,8 +282,8 @@ const cancelDeleteModal = () => {
     <!-- 메인 콘텐츠 영역 -->
     <div class="space-y-6 min-h-screen pb-32"> <!-- 하단 여백 추가 (오버레이 고려) -->
       
-      <!-- 상단 배너형 탭 메뉴 (xl 미만에서 표시) -->
-      <div class="block xl:hidden h-40">
+      <!-- 상단 배너형 탭 메뉴 (lg 미만에서 표시) -->
+      <div class="block lg:hidden h-40">
         <LogSidebar 
             :active-tab="activeTab" 
             @update:activeTab="setActiveTab"
@@ -277,7 +291,7 @@ const cancelDeleteModal = () => {
       </div>
 
       <!-- 상단 Grid: [좌: 입력+목록] [우: 달력] -->
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         
         <!-- 좌측 칼럼: 입력 폼 + 상세 목록 -->
         <div class="flex flex-col gap-6">
@@ -348,10 +362,8 @@ const cancelDeleteModal = () => {
                   <option value="" disabled>운동 선택</option>
                   <option v-for="ex in cardioExercises" :key="ex.cardioExerciseId" :value="ex.cardioExerciseId">{{ex.name}}</option>
                </select>
-               <div class="grid grid-cols-2 gap-2">
-                  <input v-model="runningForm.durationMinutes" placeholder="분" type="number" class="p-3 rounded-xl border border-gray-200" />
-                  <input v-model="runningForm.burnedKcal" placeholder="kcal" type="number" class="p-3 rounded-xl border border-gray-200" />
-               </div>
+                  <input v-model="runningForm.durationMinutes" placeholder="분 (자동 칼로리 계산)" type="number" class="w-full p-3 rounded-xl border border-gray-200" />
+
                <button @click="addRunningLog" class="w-full py-3 bg-pastel-yellow text-white rounded-xl font-bold hover:bg-pastel-yellow/90 shadow-md transform active:scale-95">
                    기록하기
                </button>
@@ -428,7 +440,7 @@ const cancelDeleteModal = () => {
         </div>
 
         <!-- 우측 칼럼: 캘린더 (높이 확보) -->
-        <div class="col-span-1 h-[600px] xl:h-auto min-h-[600px]"> <!-- 높이 강제 지정하여 보이지 않는 문제 해결 -->
+        <div class="col-span-1 h-[600px] lg:h-auto min-h-[600px]"> <!-- 높이 강제 지정하여 보이지 않는 문제 해결 -->
            <LogCalendar class="h-full w-full" />
         </div>
       </div>
@@ -443,6 +455,8 @@ const cancelDeleteModal = () => {
       </div>
     
     </div>
+    
+
 
     <!-- 수정 오버레이 (Bottom Sheet) -->
     <div v-if="isEditing" class="fixed inset-0 z-[100] flex items-end justify-center bg-black/30 backdrop-blur-sm transition-opacity" @click.self="cancelEdit">
@@ -484,7 +498,7 @@ const cancelDeleteModal = () => {
                      </div>
                      
                      <div v-if="selectedFood || dietForm.foodId" class="bg-pastel-red/10 p-4 rounded-xl text-pastel-red font-bold flex items-center gap-2">
-                        <span>✅ 선택된 음식: {{ selectedFood ? selectedFood.foodName : foodSearchQuery }}</span>
+                        <span>선택된 음식: {{ selectedFood ? selectedFood.foodName : foodSearchQuery }}</span>
                      </div>
 
                      <button @click="updateDietLog" class="w-full py-4 bg-pastel-red text-white rounded-xl text-xl font-bold hover:brightness-110 shadow-lg mt-4">
@@ -527,14 +541,10 @@ const cancelDeleteModal = () => {
                              <option v-for="ex in cardioExercises" :key="ex.cardioExerciseId" :value="ex.cardioExerciseId">{{ex.name}}</option>
                          </select>
                      </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">시간 (분)</label>
-                            <input v-model="runningForm.durationMinutes" type="number" class="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-pastel-yellow text-lg font-bold" />
-                        </div>
-                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">칼로리 (kcal)</label>
-                            <input v-model="runningForm.burnedKcal" type="number" class="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-pastel-yellow text-lg font-bold" />
+                            <input v-model="runningForm.durationMinutes" type="number" placeholder="자동 칼로리 계산" class="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-pastel-yellow text-lg font-bold" />
                         </div>
                     </div>
                      <button @click="updateRunningLog" class="w-full py-4 bg-pastel-yellow text-white rounded-xl text-xl font-bold hover:brightness-110 shadow-lg mt-4">
