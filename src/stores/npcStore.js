@@ -67,13 +67,27 @@ export const useNpcStore = defineStore('npc', () => {
             }))
             console.log('[npcStore] normalized newLogs sample:', newLogs[0])
 
-            // Backend returns newest first, we need oldest first for display
-            // 페이지 1이면 초기화, 그 외는 앞에 추가 (무한 스크롤 - 과거 기록 로드)
+            // 현재 존재하는 chatId Set 생성 (빠른 중복 확인용)
+            const existingIds = new Set(chatLogs.value.map(log => log.chatId))
+
+            // 중복되지 않은 로그만 필터링
+            // 주의: page 1인 경우(초기화)에는 필터링하지 않고 전체 교체할 수도 있지만,
+            // 일단 page 1은 덮어쓰기 로직이므로 괜찮음.
+            // page > 1일 때 중복 제거가 중요함.
+
             if (page === 1) {
-                chatLogs.value = [...newLogs].reverse() // 최신순 -> 과거순으로 뒤집기
+                // 페이지 1은 최신순으로 받아서 역순(과거순)으로 저장 -> 초기화
+                chatLogs.value = [...newLogs].reverse()
             } else {
                 // 이전 페이지 데이터를 앞에 추가
-                chatLogs.value = [...newLogs.reverse(), ...chatLogs.value]
+                // newLogs는 최신->과거 순서. reverse()하면 과거->최신 순서.
+                // 즉 [과거...최신] + [이미 로드된 더 최신 로그들]
+                const reversedNewLogs = [...newLogs].reverse()
+
+                // 중복 제거
+                const uniqueNewLogs = reversedNewLogs.filter(log => !existingIds.has(log.chatId))
+
+                chatLogs.value = [...uniqueNewLogs, ...chatLogs.value]
             }
             console.log('[npcStore] chatLogs after update:', chatLogs.value.length)
 

@@ -1,11 +1,16 @@
 <script setup>
 import { computed } from 'vue'
 
+import allImg from '@/assets/galleryCollection/All.png'
+import tomaImg from '@/assets/galleryCollection/toma.png'
+import belleImg from '@/assets/galleryCollection/belle.png'
+import chieImg from '@/assets/galleryCollection/chii.png'
+
 const sectionImages = {
-    all: 'src/assets/galleryCollection/all.png',
-    toma: 'src/assets/galleryCollection/toma.png',
-    belle: 'src/assets/galleryCollection/belle.png',
-    chie: 'src/assets/galleryCollection/chie.png',
+    all: allImg,
+    toma: tomaImg,
+    belle: belleImg,
+    chie: chieImg,
 }
 
 defineProps({
@@ -37,7 +42,7 @@ const filters = [
             
             <!-- Gradient Overlay -->
             <div class="absolute inset-0 bg-gradient-to-r opacity-90 transition-opacity"
-                 :class="[filter.color, activeFilter === filter.id ? 'opacity-90' : 'opacity-70 group-hover:opacity-80']"></div>
+                 :class="[filter.color, activeFilter === filter.id ? 'opacity-75' : 'opacity-60 group-hover:opacity-70']"></div>
 
             <!-- Content -->
             <div class="relative z-10 w-full h-full flex flex-col justify-center items-center text-white pb-1">

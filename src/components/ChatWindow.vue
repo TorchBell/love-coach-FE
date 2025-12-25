@@ -152,6 +152,8 @@ const loadMoreMessages = async () => {
   
   currentPage.value++
   // NPC ID 사용 (props)
+  if (!props.npcId) return
+  
   const newMessages = await npcStore.fetchChatLog(props.npcId, currentPage.value, 20)
   
   if (!newMessages || newMessages.length < 20) {
@@ -176,11 +178,18 @@ const setupObserver = () => {
     observer.disconnect()
   }
   
+  // 루트 요소(chatContainer)가 있을 때만 옵저버 설정
+  // rootMargin: 상단 50px 미리 감지하여 로딩 시작
   observer = new IntersectionObserver(async (entries) => {
     if (entries[0].isIntersecting && props.visible && !isInitialLoad.value) {
+      console.log('[ChatWindow] Sentinel intersected, loading more...')
       await loadMoreMessages()
     }
-  }, { threshold: 0.1 })
+  }, { 
+    root: chatContainer.value, 
+    threshold: 0.1,
+    rootMargin: '50px 0px 0px 0px' 
+  })
   
   if (sentinel.value) {
     observer.observe(sentinel.value)
@@ -207,6 +216,11 @@ watch(() => props.visible, async (newVal) => {
     hasMore.value = true
     npcStore.clearChatLogs() // Use store method instead of direct assignment
     
+    if (!props.npcId) {
+        console.error('[ChatWindow] No NPC ID provided')
+        return
+    }
+
     try {
       const result = await npcStore.fetchChatLog(props.npcId, 1, 20)
       console.log('[ChatWindow] Fetched logs:', result)

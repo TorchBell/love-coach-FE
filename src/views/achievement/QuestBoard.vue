@@ -1,34 +1,67 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useLogStore } from '@/stores/logStore'
+import { useAuthStore } from '@/stores/authStore'
+import { authApi } from '@/api/authApi'
 import completeStampData from '@/assets/stamp/COMPLETE.png'
 import userTokenIcon from '@/assets/icons/user-token.png'
 import QuestCompletionModal from '@/components/QuestCompletionModal.vue'
 
-// 퀘스트 데이터 (reward 추가)
+const logStore = useLogStore()
+const authStore = useAuthStore()
+
+// 퀘스트 데이터 (Hardcoded structure, updated fields)
 const quests = ref([
-    { id: 1, title: '식단 등록 2회 하기', target: 2, current: 2, collected: false, type: 'diet', reward: 50 },
-    { id: 2, title: '근력 운동 등록 1회 하기', target: 1, current: 1, collected: false, type: 'workout', reward: 100 },
-    { id: 3, title: '유산소 운동 등록 1회 하기', target: 1, current: 1, collected: false, type: 'cardio', reward: 100 },
-    { id: 4, title: '2000칼로리 미만 먹기', target: 1, current: 1, collected: false, type: 'diet', reward: 150 },
+    { id: 1, title: '식단 등록 2회 하기', target: 2, current: 0, collected: false, type: 'diet', reward: 10 },
+    { id: 2, title: '근력 운동 등록 1회 하기', target: 1, current: 0, collected: false, type: 'workout', reward: 10 },
+    { id: 3, title: '유산소 운동 등록 1회 하기', target: 1, current: 0, collected: false, type: 'cardio', reward: 10 },
+    { id: 4, title: '2500칼로리 미만 먹기', target: 1, current: 0, collected: false, type: 'diet', reward: 10 }, // target 1 confirms 'valid day'
 ])
 
 const now = new Date()
-const dateStr = `${now.getMonth() + 1}/${now.getDate()}`
-const storageKey = 'love_coach_daily_quest_status_v2' // 키 변경 (구조 변경됨)
+const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+const storageKey = `daily_quest_status_${authStore.user?.userId || 'guest'}_v1`
 
-const isAllCleared = ref(false) // 최종 완료(도장) 여부
-const showCompletionModal = ref(false) // 모달 표시 여부
+const isAllCleared = ref(false)
+const showCompletionModal = ref(false)
 
 // 진행률 계산
 const totalCount = computed(() => quests.value.length)
 const collectedCount = computed(() => quests.value.filter(q => q.collected).length)
-
-const totalProgress = computed(() => {
-    return Math.round((collectedCount.value / totalCount.value) * 100)
-})
-
-// 모든 퀘스트가 collected 상태여야 최종 완료 가능
+const totalProgress = computed(() => Math.round((collectedCount.value / totalCount.value) * 100))
 const canAllClear = computed(() => collectedCount.value === totalCount.value)
+
+// 퀘스트 진행상황 업데이트 (LogStore 기반)
+const updateQuestProgress = () => {
+    // 1. 식단 등록 2회
+    const dietCount = logStore.filteredDietLogs.length
+    quests.value[0].current = dietCount
+
+    // 2. 근력 운동 1회
+    const workoutCount = logStore.filteredWorkoutLogs.length
+    quests.value[1].current = workoutCount
+
+    // 3. 유산소 운동 1회
+    const runningCount = logStore.filteredRunningLogs.length
+    quests.value[2].current = runningCount
+
+    // 4. 2500kcal 미만 먹기 (단, 기록이 1개라도 있어야 함)
+    // logStore.dailyDietStats는 { 'YYYY-MM-DD': kcal } 형태
+    const todayKcal = logStore.dailyDietStats[dateStr] || 0
+    const hasDietLogs = dietCount > 0
+    
+    // 조건: 기록이 있고, 2500 미만이면 성공(1), 아니면 실패(0)
+    if (hasDietLogs && todayKcal < 2500) {
+        quests.value[3].current = 1
+        quests.value[3].title = `2500kcal 미만 (${Math.round(todayKcal)}kcal)`
+    } else if (hasDietLogs && todayKcal >= 2500) {
+        quests.value[3].current = 0 // 실패
+        quests.value[3].title = `2500kcal 초과 (${Math.round(todayKcal)}kcal)`
+    } else {
+        quests.value[3].current = 0
+        quests.value[3].title = '2500kcal 미만 먹기'
+    }
+}
 
 // 로컬 스토리지 로드
 const loadProgress = () => {
@@ -63,32 +96,79 @@ const saveProgress = () => {
     localStorage.setItem(storageKey, JSON.stringify(data))
 }
 
-const handleComplete = (quest) => {
+// 개별 퀘스트 완료 처리 (보상 지급)
+const handleComplete = async (quest) => {
     if (quest.current >= quest.target && !quest.collected) {
-        quest.collected = true
-        saveProgress()
+        try {
+            // 토큰 지급 API 호출
+            await authApi.useCredit({
+                amount: quest.reward, // +10 (Positive amount adds credit)
+                description: `Daily Quest: ${quest.title}`
+            })
+            
+            // 프론트엔드 스토어 업데이트
+            if (authStore.user) {
+                authStore.user.credit = (authStore.user.credit || 0) + quest.reward
+            }
+
+            quest.collected = true
+            saveProgress()
+            // alert(`퀘스트 완료! ${quest.reward} 토큰을 획득했습니다.`)
+        } catch (err) {
+            console.error('Core Reward Error:', err)
+            // 백엔드가 불안정해도 UI상으로는 완료 처리 진행 (사용자 요청: "프론트에서만...")
+            // 하지만 API 호출은 시도함. 실패 시에도 일단 완료 처리를 할지 고민이나, 
+            // "프론트에서만 현재 가지고 있는 백 코들 가지고 구현" -> 백엔드가 있다면 써야함.
+            // 에러가 나면 사용자에게 알리고 롤백하는게 정석이나, 데모용으로는 UI 업데이트 우선 가능.
+            // 여기서는 에러 시 중단.
+            alert('보상 지급 중 오류가 발생했습니다.')
+        }
     }
 }
 
-// 모든 퀘스트 완료하기 버튼 클릭
+// 전체 완료 처리
 const handleAllClearClick = () => {
-    // 이미 완료했거나 조건 불충족 시 무시
     if (!canAllClear.value || isAllCleared.value) return
-    
-    // 모달 표시 -> 모달이 닫히면서 completed 이벤트 발생 -> 그때 실제로 isAllCleared true 처리
     showCompletionModal.value = true
 }
 
-// 모달 완료(닫힘) 이벤트 핸들러
-const onModalCompleted = () => {
-    isAllCleared.value = true
-    showCompletionModal.value = false
-    saveProgress()
+// 모달 닫힘(완료) 후 최종 보상 지급
+const onModalCompleted = async () => {
+    try {
+        const bonusReward = 100
+        await authApi.useCredit({
+            amount: bonusReward, 
+            description: 'Daily All Clear Bonus'
+        })
+        
+        if (authStore.user) {
+            authStore.user.credit = (authStore.user.credit || 0) + bonusReward
+        }
+
+        isAllCleared.value = true
+        showCompletionModal.value = false
+        saveProgress()
+    } catch (err) {
+        console.error('Bonus Reward Error:', err)
+        alert('최종 보상 지급 중 오류가 발생했습니다.')
+        showCompletionModal.value = false
+    }
 }
 
-onMounted(() => {
+onMounted(async () => {
+    // 오늘 날짜로 로그 확인
+    logStore.setSelectedDate(now) 
+    await logStore.fetchMonthlyLogs() // 데이터 로드
+    
+    updateQuestProgress()
     loadProgress()
 })
+
+// 로그 데이터 변경 감지하여 퀘스트 상태 업데이트
+watch(() => [logStore.dietLogs, logStore.workoutLogs, logStore.runningLogs], () => {
+    updateQuestProgress()
+}, { deep: true })
+
 </script>
 
 <template>
@@ -174,7 +254,7 @@ onMounted(() => {
                  <div class="flex flex-col">
                     <h3 class="font-black text-gray-800 text-lg md:text-xl">모든 퀘스트 완료하기</h3>
                     <span class="text-xs md:text-sm font-bold text-gray-500">
-                        진행상황 ({{ collectedCount }}/{{ totalCount }})
+                        진행상황 ({{ collectedCount }}/{{ totalCount }}) +100
                     </span>
                  </div>
 

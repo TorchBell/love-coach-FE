@@ -13,6 +13,15 @@ const videoRef = ref(null)
 const cursorUrl = ref('auto')
 
 onMounted(() => {
+  // 인트로 애니메이션 설정 확인 (기본값: true)
+  const useLandingAnim = localStorage.getItem('love_coach_landing_anim') !== 'false'
+
+  if (!useLandingAnim) {
+      // 애니메이션 끄면 바로 홈으로 이동
+      router.replace('/home')
+      return
+  }
+
   if (UI_IMAGES?.cursorFist) {
     cursorUrl.value = `url('${UI_IMAGES.cursorFist}') 16 16, pointer`
   }

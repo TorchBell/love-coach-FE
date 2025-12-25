@@ -184,13 +184,19 @@ const notifications = ref({
 
 const appSettings = ref({
     loadingScreen: localStorage.getItem('love_coach_loading_screen') !== 'false', // Default true
-    completionAnim: true
+    completionAnim: true,
+    landingAnimation: localStorage.getItem('love_coach_landing_anim') !== 'false' // Default true
 })
 
 // 설정 변경 감지 및 저장
 watch(() => appSettings.value.loadingScreen, (newVal) => {
     localStorage.setItem('love_coach_loading_screen', newVal)
     showToast(`로딩 애니메이션이 ${newVal ? '켜졌습니다' : '꺼졌습니다'}.`, 'success')
+})
+
+watch(() => appSettings.value.landingAnimation, (newVal) => {
+    localStorage.setItem('love_coach_landing_anim', newVal)
+    showToast(`인트로 애니메이션이 ${newVal ? '켜졌습니다' : '꺼졌습니다'}.`, 'success')
 })
 
 // 메뉴 목록
@@ -651,6 +657,8 @@ const handleDeleteConfirm = async () => {
                                 </button>
                             </div>
 
+
+
                             <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                 <div>
                                     <h3 class="font-bold text-gray-800">이메일 알림</h3>
@@ -857,6 +865,23 @@ const handleDeleteConfirm = async () => {
                                     <span 
                                         class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm"
                                         :class="appSettings.completionAnim ? 'translate-x-6' : 'translate-x-0'"
+                                    ></span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <div>
+                                    <h3 class="font-bold text-gray-800">인트로 애니메이션</h3>
+                                    <p class="text-xs text-gray-500 mt-1">앱 시작 시 대문 열림 효과를 표시합니다.</p>
+                                </div>
+                                <button 
+                                    @click="appSettings.landingAnimation = !appSettings.landingAnimation"
+                                    class="relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none"
+                                    :class="appSettings.landingAnimation ? 'bg-pastel-blue' : 'bg-gray-300'"
+                                >
+                                    <span 
+                                        class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm"
+                                        :class="appSettings.landingAnimation ? 'translate-x-6' : 'translate-x-0'"
                                     ></span>
                                 </button>
                             </div>

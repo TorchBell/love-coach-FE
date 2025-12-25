@@ -1,10 +1,12 @@
 <script setup>
 import CharacterDialog from './components/CharacterDialog.vue'
 import ChatWindow from '@/components/ChatWindow.vue'
+import NotificationToast from '@/components/NotificationToast.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useUiStore } from '@/stores/uiStore'
+import { useNotificationStore } from '@/stores/notificationStore'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 
 const mainCharacterBelle = CHAR_IMAGES?.belle || ''
@@ -12,11 +14,15 @@ const mainCharacterBelle = CHAR_IMAGES?.belle || ''
 const route = useRoute()
 const authStore = useAuthStore()
 const uiStore = useUiStore()
+const notificationStore = useNotificationStore()
 const showDialog = ref(false)
 
-// 앱 로드 시 세션 복구
+// 앱 로드 시 세션 복구 및 알림 연결
 onMounted(async () => {
   await authStore.fetchUserProfile()
+  if (authStore.isAuthenticated) {
+      notificationStore.connect()
+  }
 })
 
 // 다이얼로그 스크롤 감지 (자식 라우트에서 수신)
@@ -51,4 +57,18 @@ defineExpose({ handleScroll })
     :npc-id="uiStore.currentNpcId"
     @close="uiStore.closeChat()"
   />
+
+  <!-- Real-time Notifications Stack -->
+  <div class="fixed bottom-10 right-10 z-[100] flex flex-col gap-2 pointer-events-none">
+      <NotificationToast 
+        v-for="notify in notificationStore.notifications"
+        :key="notify.id"
+        :id="notify.id"
+        :title="notify.title"
+        :message="notify.message"
+        :type="notify.type"
+        :image="notify.image"
+        class="pointer-events-auto relative transform translate-x-0 bottom-auto right-auto" 
+      />
+  </div>
 </template>
