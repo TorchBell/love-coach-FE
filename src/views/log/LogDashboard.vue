@@ -14,6 +14,8 @@ import {
 import { Line, Doughnut } from 'vue-chartjs'
 import { useLogStore } from '@/stores/logStore'
 import { storeToRefs } from 'pinia'
+import { npcApi } from '@/api/npcApi'
+import AiAnalysisReportModal from '@/components/AiAnalysisReportModal.vue'
 
 // Chart.js 컴포넌트 등록
 ChartJS.register(
@@ -46,6 +48,43 @@ const dashboardTitle = computed(() => {
     if (props.activeTab === 'workout') return '월간 근력 데이터 분석'
     return '월간 유산소 데이터 분석'
 })
+
+// --- AI 분석 리포트 모달 ---
+const showAiReportModal = ref(false)
+const aiReportContent = ref('')
+const isAiReportLoading = ref(false)
+
+// activeTab에 따른 NPC ID 매핑
+const currentNpcId = computed(() => {
+    if (props.activeTab === 'diet') return 1 // 토마
+    if (props.activeTab === 'workout') return 2 // 벨
+    return 3 // 치에
+})
+
+const requestAiAnalysis = async () => {
+    showAiReportModal.value = true
+    isAiReportLoading.value = true
+    aiReportContent.value = ''
+    
+    try {
+        const now = new Date()
+        const response = await npcApi.createReport({
+            npcId: currentNpcId.value,
+            year: now.getFullYear(),
+            month: now.getMonth() + 1
+        })
+        aiReportContent.value = response.data || ''
+    } catch (err) {
+        console.error('AI 분석 실패:', err)
+        aiReportContent.value = '분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+    } finally {
+        isAiReportLoading.value = false
+    }
+}
+
+const closeAiReportModal = () => {
+    showAiReportModal.value = false
+}
 
 const titleColorClass = computed(() => {
     if (props.activeTab === 'diet') return 'border-pastel-red text-pastel-red'
@@ -613,10 +652,22 @@ const doughnutChartOptions = {
 <template>
   <div class="space-y-8 animate-fade-in relative z-0"> <!-- z-index 0으로 캘린더나 오버레이 간섭 최소화 -->
     
-    <!-- 동적 타이틀 -->
-    <h2 class="text-base md:text-lg lg:text-xl font-bold mb-4 pl-3 border-l-4 flex items-center gap-2 select-none" :class="titleColorClass">
-        {{ dashboardTitle }}
-    </h2>
+    <!-- 동적 타이틀 + AI 분석 버튼 -->
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base md:text-lg lg:text-xl font-bold pl-3 border-l-4 flex items-center gap-2 select-none" :class="titleColorClass">
+            {{ dashboardTitle }}
+        </h2>
+        
+        <button 
+            @click="requestAiAnalysis" 
+            class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pastel-red to-pink-400 text-white rounded-full font-bold text-sm hover:brightness-110 transition-all shadow-md hover:shadow-lg active:scale-95"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.674M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span>AI 분석</span>
+        </button>
+    </div>
 
     <!-- [식단] 대시보드 -->
     <div v-if="activeTab === 'diet'" class="space-y-6">
@@ -803,7 +854,15 @@ const doughnutChartOptions = {
           </div>
         </div>
     </div>
-
+    
+    <!-- AI 분석 리포트 모달 -->
+    <AiAnalysisReportModal 
+        :show="showAiReportModal"
+        :report-content="aiReportContent"
+        :npc-id="currentNpcId"
+        :is-loading="isAiReportLoading"
+        @close="closeAiReportModal"
+    />
   </div>
 </template>
 

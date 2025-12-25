@@ -37,5 +37,15 @@ export const npcApi = {
      */
     async sendChat(request) {
         return api.post('/npc/chat', request)
+    },
+
+    /**
+     * AI 분석 리포트 생성
+     * POST /api/npc/report
+     * @param {Object} request - { npcId: number, year: number, month: number }
+     * @returns {Promise<{data: string}>} - AI 분석 결과 텍스트
+     */
+    async createReport(request) {
+        return api.post('/npc/report', request)
     }
 }

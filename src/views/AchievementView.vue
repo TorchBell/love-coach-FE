@@ -36,10 +36,12 @@ const characterAchievements = computed(() => {
   const formatType = (type) => {
       if (!type) return ''
       const t = type.toUpperCase()
-      if (t.includes('DIET')) return '식단'
+      if (t.includes('DIET') || t.includes('FOOD')) return '식단'
       if (t.includes('WORKOUT') || t.includes('MUSCLE')) return '근력'
       if (t.includes('CARDIO') || t.includes('RUN')) return '유산소'
       if (t.includes('LOGIN')) return '출석'
+      if (t.includes('AFFECTION')) return '호감도'
+      if (t === 'MOCK') return '' // MOCK 타입은 숨김
       return type
   }
 
@@ -123,11 +125,16 @@ const findLocalImage = (dbPath) => {
       const targetValue = item.achievementValue || item.achievement_value || 0
       const currentValue = item.progress || 0
       
-      // 3. 달성 여부 판단 & 타이틀 처리
+      // 3. 달성 여부 판단 (achievedAt 기준) & 타이틀 처리
       const rawTitle = item.name || item.title || '잠겨 있는 업적'
-      // 공백 제거 후 비교 (잠겨있는업적 vs 잠겨 있는 업적 모두 대응)
       const normalizedTitle = rawTitle.replace(/\s+/g, '')
-      const isAchieved = normalizedTitle !== '잠겨있는업적'
+      
+      // 실제 '잠겨있는 업적'인지 판단 (타이틀 기준) - 마스킹 용도
+      const isRealLocked = normalizedTitle === '잠겨있는업적'
+      
+      // 달성 여부: 데이터에 달성일이 있고, 타이틀이 '잠겨있는 업적'이 아니어야 함
+      const achievedDate = item.achievedAt || item.achieved_at
+      const isAchieved = !!achievedDate && !isRealLocked
 
       const typeLabel = formatType(item.achievementType || item.achievement_type || '')
       
@@ -136,9 +143,10 @@ const findLocalImage = (dbPath) => {
 
       return {
           id: item.achievementId || item.achievement_id,
-          // 완료된 경우 실제 타이틀 표시, 아니면 '???' (단, DB에서 이미 '잠겨 있는 업적'으로 오면 그걸 '???'로 치환)
-          // 로직상 isAchieved가 false이면(즉 '잠겨 있는 업적'이면) ???로 표시
-          title: isAchieved ? rawTitle : '????',
+          // 타이틀 표시 로직: 
+          // 1. 진짜 잠겨있는 업적(DB 타이틀이 '잠겨있는 업적') -> '????'
+          // 2. 그 외(MOCK 포함, 달성했든 안했든) -> 원래 타이틀 표시
+          title: isRealLocked ? '????' : rawTitle,
           // Description은 항상 노출
           description: item.description || '설명이 없습니다.',
           status: isAchieved ? 'completed' : 'locked',
@@ -149,8 +157,9 @@ const findLocalImage = (dbPath) => {
           isAchieved: isAchieved,
           achievedAt: item.achievedAt || item.achieved_at, // 달성일
           
-          progressText: `${typeLabel} (${currentValue}/${targetValue})`,
-          progressPercent: targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0
+          progressText: typeLabel ? `${typeLabel} (${currentValue}/${targetValue})` : '',
+          progressPercent: targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0,
+          isMock: !typeLabel // MOCK 타입 여부 플래그
       }
   }
 
@@ -298,8 +307,8 @@ const getAchievementImage = (key) => {
                                 {{ item.description }}
                             </p>
                             
-                            <!-- Progress Bar & Text (Only if not completed) -->
-                            <div v-if="item.status !== 'completed'" class="mt-2">
+                            <!-- Progress Bar & Text (Only if not completed AND not MOCK type) -->
+                            <div v-if="item.status !== 'completed' && !item.isMock && item.progressText" class="mt-2">
                                 <div class="flex justify-between items-center text-xs font-bold text-gray-400 mb-1">
                                     <span>{{ item.progressText }}</span>
                                     <span>{{ Math.round(item.progressPercent) }}%</span> 
