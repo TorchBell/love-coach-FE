@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, computed, onUnmounted, onBeforeUnmount } from 'vue'
 import { useNpcStore } from '@/stores/npcStore'
+import { useUiStore } from '@/stores/uiStore'
 import { CHAR_IMAGES } from '@/assets/dummy/index.js'
 import tomaIcon from '@/assets/smallIcon/toma.jpg'
 import belleIcon from '@/assets/smallIcon/belle.jpg'
@@ -17,6 +18,7 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const npcStore = useNpcStore()
+const uiStore = useUiStore()
 
 // NPC별 테마 및 정보
 const NPC_INFO = {
@@ -26,6 +28,8 @@ const NPC_INFO = {
     headerColor: 'bg-pastel-red',
     bubbleColor: 'bg-pastel-red',
     dotColor: 'bg-pastel-red',
+    ringColor: 'ring-pastel-red',
+    borderColor: 'border-pastel-red',
     icon: tomaIcon 
   },
   2: { 
@@ -34,6 +38,8 @@ const NPC_INFO = {
     headerColor: 'bg-gray-800', 
     bubbleColor: 'bg-gray-800',
     dotColor: 'bg-gray-600',
+    ringColor: 'ring-gray-800',
+    borderColor: 'border-gray-800',
     icon: belleIcon 
   },
   3: { 
@@ -42,6 +48,8 @@ const NPC_INFO = {
     headerColor: 'bg-yellow-400', 
     bubbleColor: 'bg-yellow-400',
     dotColor: 'bg-yellow-600',
+    ringColor: 'ring-yellow-400',
+    borderColor: 'border-yellow-400',
     icon: chiiIcon 
   }
 }
@@ -55,6 +63,8 @@ const currentNpc = computed(() => {
     headerColor: 'bg-gray-200',
     bubbleColor: 'bg-gray-200',
     dotColor: 'bg-gray-400',
+    ringColor: 'ring-gray-400',
+    borderColor: 'border-gray-400',
     icon: ''
   }
 })
@@ -152,7 +162,10 @@ const loadMoreMessages = async () => {
   
   currentPage.value++
   // NPC ID 사용 (props)
-  if (!props.npcId) return
+  if (!props.npcId) {
+    isLoadingMore.value = false
+    return
+  }
   
   const newMessages = await npcStore.fetchChatLog(props.npcId, currentPage.value, 20)
   
@@ -166,6 +179,8 @@ const loadMoreMessages = async () => {
   await nextTick()
   if (chatContainer.value) {
     const newHeight = chatContainer.value.scrollHeight
+    // 스크롤 탑 복원: 새 높이 - 예전 높이 + 예전 스크롤탑
+    // 예: 1000 - 500 + 0 = 500. 즉 중간쯤으로 이동.
     chatContainer.value.scrollTop = newHeight - prevHeight + prevScrollTop
   }
 }
@@ -182,7 +197,6 @@ const setupObserver = () => {
   // rootMargin: 상단 50px 미리 감지하여 로딩 시작
   observer = new IntersectionObserver(async (entries) => {
     if (entries[0].isIntersecting && props.visible && !isInitialLoad.value) {
-      console.log('[ChatWindow] Sentinel intersected, loading more...')
       await loadMoreMessages()
     }
   }, { 
@@ -206,40 +220,44 @@ onBeforeUnmount(() => {
   }
 })
 
-// 가시성 감시 (창 열림/닫힘)
-watch(() => props.visible, async (newVal) => {
-  if (newVal) {
-    console.log('[ChatWindow] Opening, loading chat history...')
-    // 초기화 및 초기 로드
+// 대화 로그 로드 함수
+const loadLogs = async (shouldScrollToBottom = false) => {
     isInitialLoad.value = true
     currentPage.value = 1
     hasMore.value = true
-    npcStore.clearChatLogs() // Use store method instead of direct assignment
+    npcStore.clearChatLogs()
     
     if (!props.npcId) {
         console.error('[ChatWindow] No NPC ID provided')
+        isInitialLoad.value = false
         return
     }
 
     try {
-      const result = await npcStore.fetchChatLog(props.npcId, 1, 20)
-      console.log('[ChatWindow] Fetched logs:', result)
-      
-      // 20개 미만이면 더 이상 페이지 없음
-      if (!result || result.length < 20) {
-        hasMore.value = false
-      }
-      
-      await scrollToBottom(true) // 즉시 스크롤
+        const result = await npcStore.fetchChatLog(props.npcId, 1, 20)
+        
+        if (!result || result.length < 20) {
+            hasMore.value = false
+        }
+        
+        if (shouldScrollToBottom) {
+            await nextTick()
+            await scrollToBottom(true)
+        }
     } catch (err) {
-      console.error('[ChatWindow] Error fetching chat logs:', err)
+        console.error('[ChatWindow] Error fetching chat logs:', err)
+    } finally {
+        isInitialLoad.value = false
+        // 초기 로드 후 관찰자 재설정
+        await nextTick()
+        setupObserver()
     }
-    
-    isInitialLoad.value = false
-    
-    // 초기 로드 후 관찰자 재설정
-    await nextTick()
-    setupObserver()
+}
+
+// 가시성 및 NPC 변경 감시
+watch([() => props.visible, () => props.npcId], async ([newVisible, newNpcId], [oldVisible, oldNpcId]) => {
+  if (newVisible && (newVisible !== oldVisible || newNpcId !== oldNpcId)) {
+    await loadLogs(true)
   }
 })
 
@@ -280,151 +298,188 @@ watch(() => props.visible, (newVal) => {
 
 <template>
   <!-- Bottom-right positioned chat window -->
+  <!-- Width increased to accommodate sidebar: w-[420px] md:w-[480px] -->
   <div 
     v-if="visible" 
-    class="fixed bottom-24 right-8 w-80 md:w-96 bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden z-[100] animate-slide-up h-[600px] max-h-[80vh]"
+    class="fixed bottom-4 right-4 md:bottom-12 md:right-12 h-[600px] max-h-[80vh] flex flex-row overflow-hidden z-[100] animate-slide-up rounded-[2.5rem] shadow-2xl border border-white/40 bg-white/80 backdrop-blur-xl w-auto max-w-[calc(100vw-2rem)]"
     @click.stop
   >
-    <!-- 헤더 -->
-    <div class="p-4 text-white flex justify-between items-center shadow-md relative overflow-hidden" :class="currentNpc.headerColor">
-      <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-      
-      <div class="flex items-center gap-3 z-10">
-        <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 overflow-hidden shrink-0">
-           <img :src="currentNpc.icon" class="w-full h-full object-cover" />
+    <!-- 1. 사이드바 (NPC 선택) -->
+    <aside class="w-[5.5rem] bg-indigo-50/50 backdrop-blur-3xl flex flex-col items-center py-6 gap-6 border-r border-white/40 z-20 shadow-[inset_-1px_0_0_rgba(255,255,255,0.3)]">
+        <div 
+          v-for="(info, id) in NPC_INFO" 
+          :key="id"
+          class="relative group cursor-pointer transition-transform duration-300"
+          :class="props.npcId === Number(id) ? 'scale-110' : 'hover:scale-105'"
+          @click="npcStore.fetchChatLog(Number(id)); uiStore.openChat(Number(id))"
+        >
+          <!-- Active Line Indicator -->
+           <div 
+            v-if="props.npcId === Number(id)"
+            class="absolute -left-[1.8rem] top-1/2 -translate-y-1/2 w-1.5 h-10 rounded-r-full transition-all duration-300 shadow-[0_0_10px_rgba(0,0,0,0.1)]"
+            :class="info.headerColor.replace('bg-', 'bg-')"
+           ></div>
+
+          <!-- Avatar Container -->
+          <div 
+            class="w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all duration-300 shadow-lg relative group-hover:shadow-xl"
+            :class="props.npcId === Number(id) ? `${info.borderColor} ring-2 ring-offset-2 ring-offset-white/60 ${info.ringColor}` : 'border-white/50 opacity-60 hover:opacity-100 grayscale-[0.8] hover:grayscale-0'"
+          >
+            <img :src="info.icon" class="w-full h-full object-cover" />
+            
+            <!-- Active Glow Overlay -->
+             <div v-if="props.npcId === Number(id)" class="absolute inset-0 bg-white/10 mix-blend-overlay"></div>
+          </div>
+          
+          <!-- Tooltip -->
+           <span class="absolute left-16 top-1/2 -translate-y-1/2 bg-gray-900/90 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-xl z-50 ml-1 tracking-wider transform translate-x-2 group-hover:translate-x-0">
+            {{ info.name }}
+           </span>
         </div>
-        <div>
-          <span class="font-bold text-lg tracking-wide block">{{ currentNpc.name }}</span>
-          <span class="text-xs text-white/80 font-light flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-            Online
-          </span>
+    </aside>
+
+    <!-- 2. 메인 채팅 영역 -->
+    <div class="w-80 md:w-96 flex flex-col h-full bg-white relative">
+        <!-- 헤더 -->
+        <div class="p-4 text-white flex justify-between items-center shadow-sm relative overflow-hidden shrink-0 transition-colors duration-500" :class="currentNpc.headerColor">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+          
+          <div class="flex items-center gap-3 z-10">
+            <!-- Header Icon (Small) -->
+             <!-- 사이드바가 있으므로 헤더 아이콘은 생략하거나 작게 유지 -->
+             <!-- 디자인 선택: 헤더는 이름 중심으로 깔끔하게 -->
+            <div>
+              <span class="font-bold text-lg tracking-wide block">
+                 {{ currentNpc.name }}
+              </span>
+              <span class="text-xs text-white/80 font-light flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                Online
+              </span>
+            </div>
+          </div>
+          <button @click="$emit('close')" class="p-2 rounded-lg transition-all hover:scale-110 z-10 hover:bg-white/20 text-white/90 hover:text-white" title="닫기">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      </div>
-      <button @click="$emit('close')" class="p-2 rounded-lg transition-all hover:scale-110 z-10" style="background: rgba(0,0,0,0.2); color: #fff;" title="닫기">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
-    
-    <!-- Messages Area -->
-    <div 
-      ref="chatContainer"
-      class="flex-1 overflow-y-auto p-3 space-y-3 bg-gradient-to-b from-cream/20 to-white"
-    >
-      <!-- 상단 무한 스크롤 감시 요소 -->
-      <div ref="sentinel" class="h-6 w-full flex justify-center items-center">
-        <div v-if="isLoadingMore" class="flex items-center gap-2 text-xs text-gray-400">
-          <span class="w-4 h-4 border-2 border-pastel-red/30 border-t-pastel-red rounded-full animate-spin"></span>
-          <span>이전 대화 불러오는 중...</span>
-        </div>
-        <div v-else-if="!hasMore && groupedLogs.length > 0" class="text-xs text-gray-400">
-          대화의 시작입니다
-        </div>
-      </div>
-      
-      <!-- 빈 상태 -->
-      <div v-if="groupedLogs.length === 0 && !isLoadingMore" class="flex flex-col items-center justify-center h-full text-gray-400">
-        <span class="text-4xl mb-2">💬</span>
-        <p class="text-sm">대화를 시작해보세요!</p>
-      </div>
-      
-      <div v-for="item in groupedLogs" :key="item.id">
-        <!-- 날짜 구분선 -->
-        <div v-if="item.type === 'date'" class="flex items-center justify-center my-4">
-          <div class="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-500 font-medium shadow-sm">
-            {{ item.date }}
+        
+        <!-- Messages Area -->
+        <div 
+          ref="chatContainer"
+          class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 relative scroll-smooth"
+        >
+
+
+          <!-- 상단 무한 스크롤 감시 요소 -->
+          <div ref="sentinel" class="h-6 w-full flex justify-center items-center shrink-0 z-10 relative">
+            <div v-if="isLoadingMore" class="flex items-center gap-2 text-xs text-gray-400">
+              <span class="w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin"></span>
+              <span>이전 대화...</span>
+            </div>
+          </div>
+          
+          <!-- 빈 상태 -->
+          <div v-if="groupedLogs.length === 0 && !isLoadingMore" class="flex flex-col items-center justify-center h-full text-gray-400 z-10 relative">
+            <p class="text-xs font-medium">{{ currentNpc.name }}와(과) 대화를 시작하세요</p>
+          </div>
+          
+          <div v-for="item in groupedLogs" :key="item.id" class="z-10 relative">
+            <!-- 날짜 구분선 -->
+            <div v-if="item.type === 'date'" class="flex items-center justify-center my-6">
+              <div class="bg-gray-200/60 backdrop-blur-sm px-3 py-0.5 rounded-full text-[10px] text-gray-500 font-medium tracking-wide">
+                {{ item.date }}
+              </div>
+            </div>
+            
+            <!-- 메시지 목록 -->
+            <div 
+              v-else 
+              class="flex w-full group mb-1" 
+              :class="item.isUser ? 'justify-end' : 'justify-start'"
+            >
+              <!-- 내 말풍선 -->
+              <div 
+                v-if="item.isUser"
+                class="flex flex-col items-end max-w-[85%]"
+              >
+                 <div 
+                   class="p-3 pl-4 rounded-2xl rounded-tr-sm shadow-sm text-white relative transition-transform hover:shadow-md"
+                   :class="currentNpc.bubbleColor"
+                 >
+                   <p class="text-sm leading-relaxed">{{ item.text }}</p>
+                 </div>
+                 <span class="text-[10px] mt-1 text-gray-300 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">{{ item.time }}</span>
+              </div>
+
+              <!-- 상대방 말풍선 -->
+              <div 
+                v-else
+                class="flex flex-col items-start max-w-[85%]"
+              >
+                <!-- NPC 이름 (처음 또는 날짜 바뀔 때만? 일단 항상 표시하거나 생략) -> 생략하고 시간만 -->
+                <div class="flex items-end gap-2">
+                   <!-- 아바타 (말풍선 옆 작게) -->
+                   <div class="w-6 h-6 rounded-full overflow-hidden shrink-0 self-start mt-1 mr-1 shadow-sm">
+                      <img :src="currentNpc.icon" class="w-full h-full object-cover">
+                   </div>
+                   
+                   <div class="flex flex-col text-left">
+                       <span class="text-[10px] text-gray-500 ml-1 mb-0.5">{{ currentNpc.name }}</span>
+                       <div 
+                         class="p-3 rounded-2xl rounded-tl-sm shadow-sm bg-white text-gray-700 border border-gray-100 relative transition-transform hover:shadow-md"
+                       >
+                         <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ item.text }}</p>
+                       </div>
+                       <span class="text-[10px] mt-1 text-gray-300 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">{{ item.time }}</span>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <!-- 로딩 인디케이터 (AI 응답 대기 중) -->
+          <div v-if="isSending" class="flex w-full justify-start animate-fade-in-up mt-2 z-10 relative">
+             <div class="flex items-end gap-2 ml-1">
+                 <div class="w-6 h-6 rounded-full overflow-hidden shrink-0 self-start shadow-sm">
+                      <img :src="currentNpc.icon" class="w-full h-full object-cover grayscale-[0.2]">
+                   </div>
+                 <div class="p-3 rounded-2xl rounded-tl-none shadow-sm bg-white border border-gray-100">
+                    <div class="flex space-x-1 h-4 items-center px-1">
+                      <div class="w-1.5 h-1.5 rounded-full animate-bounce bg-gray-400" style="animation-delay: 0s"></div>
+                      <div class="w-1.5 h-1.5 rounded-full animate-bounce bg-gray-400" style="animation-delay: 0.1s"></div>
+                      <div class="w-1.5 h-1.5 rounded-full animate-bounce bg-gray-400" style="animation-delay: 0.2s"></div>
+                    </div>
+                </div>
+             </div>
           </div>
         </div>
         
-        <!-- 메시지 목록 -->
-        <div 
-          v-else 
-          class="flex w-full" 
-          :class="item.isUser ? 'justify-end' : 'justify-start'"
-        >
-          <!-- 내 말풍선 -->
-          <div 
-            v-if="item.isUser"
-            class="p-3 pl-4 rounded-2xl rounded-tr-none shadow-sm text-white max-w-[85%] relative"
-            :class="currentNpc.bubbleColor"
-          >
-            <p class="text-sm leading-relaxed">{{ item.text }}</p>
-            <!-- 말풍선 꼬리 -->
-            <div class="absolute top-0 -right-2 w-4 h-4 border-t border-r transform rotate-45" :class="[currentNpc.bubbleColor, currentNpc.bubbleColor.replace('bg-', 'border-')]"></div>
-            <span 
-              class="text-[10px] mt-1 block text-white/70 text-right"
+        <!-- 입력 영역 -->
+        <div class="p-3 bg-white border-t border-gray-100 shrink-0 z-20">
+          <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-200 focus-within:border-gray-300 focus-within:bg-white transition-all shadow-inner">
+            <input 
+              v-model="messageInput"
+              @keyup.enter="handleSend"
+              type="text" 
+              placeholder="메시지 보내기..."
+              class="chat-input-field flex-1 bg-transparent border-none focus:outline-none px-2 text-sm text-gray-700 placeholder-gray-400"
+              :disabled="isSending"
+            />
+            <button 
+              @click="handleSend"
+              :disabled="!messageInput.trim() || isSending"
+              class="p-2 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm transform hover:scale-105 active:scale-95"
+              :class="[currentNpc.headerColor]"
             >
-              {{ item.time }}
-            </span>
-          </div>
-
-          <!-- 상대방 말풍선 -->
-          <div 
-            v-else
-            class="flex flex-col max-w-[85%]"
-          >
-            <!-- NPC 이름 -->
-            <span class="text-[10px] text-gray-500 mb-1 ml-1" style="text-align: left;">{{ currentNpc.name }}</span>
-            <div 
-              class="p-3 rounded-2xl rounded-tl-none shadow-sm bg-white text-gray-800 border border-gray-100 relative"
-            >
-              <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ item.text }}</p>
-              <span 
-                class="text-[10px] mt-1 block text-gray-400"
-              >
-                {{ item.time }}
-              </span>
-              <!-- 말풍선 꼬리 -->
-              <div class="absolute top-0 -left-2 w-4 h-4 bg-white border-l border-b border-gray-100 transform rotate-45"></div>
-            </div>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+              </svg>
+            </button>
           </div>
         </div>
-      </div>
-
-      
-      <!-- 로딩 인디케이터 (AI 응답 대기 중) -->
-      <div v-if="isSending" class="flex w-full justify-start animate-fade-in-up mt-2">
-        <div class="flex flex-col max-w-[70%]">
-          <!-- NPC 이름 -->
-          <span class="text-[10px] text-gray-500 mb-1 ml-1" style="text-align: left;">{{ currentNpc.name }}</span>
-          <!-- 로딩 버블 -->
-          <div class="p-3 rounded-2xl rounded-tl-none shadow-sm bg-white text-gray-800 border border-gray-100 relative w-fit">
-            <div class="flex space-x-1 h-5 items-center">
-              <div class="w-2 h-2 rounded-full animate-bounce" :class="currentNpc.dotColor" style="animation-delay: 0s"></div>
-              <div class="w-2 h-2 rounded-full animate-bounce" :class="currentNpc.dotColor" style="animation-delay: 0.1s"></div>
-              <div class="w-2 h-2 rounded-full animate-bounce" :class="currentNpc.dotColor" style="animation-delay: 0.2s"></div>
-            </div>
-            <!-- 말풍선 꼬리 -->
-            <div class="absolute top-3 -left-2 w-4 h-4 bg-white border-l border-b border-gray-100 transform rotate-45"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 입력 영역 -->
-    <div class="p-3 bg-white border-t border-gray-100 shrink-0">
-      <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200 focus-within:border-pastel-red/50 focus-within:bg-white transition-all">
-        <input 
-          v-model="messageInput"
-          @keyup.enter="handleSend"
-          type="text" 
-          placeholder="메시지를 입력하세요..."
-          class="chat-input-field flex-1 bg-transparent border-none focus:outline-none px-2 text-sm text-gray-700 placeholder-gray-400"
-          :disabled="isSending"
-        />
-        <button 
-          @click="handleSend"
-          :disabled="!messageInput.trim() || isSending"
-          class="p-2 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          :class="[currentNpc.headerColor, 'hover:opacity-90']"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-          </svg>
-        </button>
-      </div>
     </div>
   </div>
 </template>

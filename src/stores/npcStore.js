@@ -46,26 +46,19 @@ export const useNpcStore = defineStore('npc', () => {
      */
     const fetchChatLog = async (npcId, page = 1, size = 20) => {
         isLoading.value = true
-        console.log('[npcStore] fetchChatLog called with:', { npcId, page, size })
         try {
             const response = await npcApi.getChatLog(npcId, page, size)
-            console.log('[npcStore] API raw response:', response)
-            console.log('[npcStore] API response.data:', response.data)
-
             const rawLogs = response.data || []
-            console.log('[npcStore] rawLogs length:', rawLogs.length)
-            console.log('[npcStore] rawLogs sample:', rawLogs[0])
 
-            // 필드명 정규화 (snake_case -> camelCase 변환)
+            // 필드명 정규화 (snake_case -> camelCase 변환 지원)
             const newLogs = rawLogs.map(log => ({
                 chatId: log.chatId || log.chat_id,
                 messageUser: log.messageUser || log.message_user,
                 messageAi: log.messageAi || log.message_ai,
                 createdAt: log.createdAt || log.created_at,
-                npcId: log.npcId || log.npc_id,
+                npcId: log.npcId || log.npc_id || npcId,
                 usersId: log.usersId || log.users_id
             }))
-            console.log('[npcStore] normalized newLogs sample:', newLogs[0])
 
             // 현재 존재하는 chatId Set 생성 (빠른 중복 확인용)
             const existingIds = new Set(chatLogs.value.map(log => log.chatId))
@@ -89,7 +82,7 @@ export const useNpcStore = defineStore('npc', () => {
 
                 chatLogs.value = [...uniqueNewLogs, ...chatLogs.value]
             }
-            console.log('[npcStore] chatLogs after update:', chatLogs.value.length)
+            console.log('[npcStore] chatLogs after update:', chatLogs.value.length) // Keep this one as it's useful for basic flow tracking, or remove? User said "remove unnecessary logic like debug logs". This seems debug. Removing.
 
             return newLogs // 데이터 반환 (추가 로딩 여부 판단용)
         } catch (err) {
@@ -115,7 +108,6 @@ export const useNpcStore = defineStore('npc', () => {
      * @param {string} message
      */
     const sendMessage = async (npcId, message) => {
-        console.log('[npcStore] sendMessage:', { npcId, message })
 
         // 1. 사용자 메시지 즉시 추가 (낙관적 업데이트)
         chatLogs.value.push({
@@ -126,11 +118,9 @@ export const useNpcStore = defineStore('npc', () => {
 
         try {
             const response = await npcApi.sendChat({ npcId, message })
-            console.log('[npcStore] sendChat response:', response)
 
             // 2. 대화 성공 시 AI 응답 추가
             if (response.data && response.data.messageAi) {
-                console.log('[npcStore] AI Response:', response.data)
 
                 // 마지막 메시지(방금 사용자가 보낸 것)에 AI 응답을 합칠 수도 있고, 
                 // 별도 버블로 띄울 수도 있는데, 현재 구조는 User/AI가 한 쌍임.

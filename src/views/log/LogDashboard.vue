@@ -9,7 +9,8 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  Filler
 } from 'chart.js'
 import { Line, Doughnut } from 'vue-chartjs'
 import { useLogStore } from '@/stores/logStore'
@@ -26,7 +27,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  Filler
 )
 
 const props = defineProps({
