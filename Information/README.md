@@ -3,7 +3,7 @@
 > **"건강한 습관, 설레는 시작"**  
 > 미소녀 연애 시뮬레이션(Date Sim) 요소를 결합한 AI 기반 개인화 헬스케어 코칭 웹 어플리케이션
 
-![LoveNyam Banner](frontend/src/assets/images/door_final.png)
+![LoveNyam Banner](../src/assets/images/door_final.png)
 
 ## 📖 Project Overview
 
